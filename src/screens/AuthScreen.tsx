@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
-import { signIn, signUp } from '../services/simpleAuth';
+import { signIn, signUp } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
 
 type AuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Auth'>;
@@ -23,33 +23,33 @@ interface Props {
 
 export default function AuthScreen({ navigation }: Props) {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn: setAuthUsername } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn: authSignIn } = useAuth();
 
   const handleAuth = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter username and password');
+    if (!username.trim()) {
+      Alert.alert('Error', 'Please enter a username');
       return;
     }
 
+    setIsLoading(true);
     try {
       if (isSignUp) {
-        // Sign up - creates user or updates password if exists
-        await signUp(username.trim(), password);
-        // Set auth context and navigate to username screen for profile setup
-        setAuthUsername(username.trim());
+        // Sign up with username only
+        await signUp(username.trim());
+        // Auto sign in after signup
+        await authSignIn(username.trim());
         navigation.navigate('Username');
       } else {
-        // Sign in
-        const user = await signIn(username.trim(), password);
-        if (user) {
-          setAuthUsername(username.trim());
-          // Navigation will automatically switch to authenticated stack
-        }
+        // Sign in with username only
+        await authSignIn(username.trim());
+        // Navigation will automatically switch to authenticated stack
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -76,24 +76,16 @@ export default function AuthScreen({ navigation }: Props) {
           onChangeText={setUsername}
           autoCapitalize="none"
           autoCorrect={false}
-        />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
+          editable={!isLoading}
         />
         
         <TouchableOpacity 
-          style={styles.mainButton}
+          style={[styles.mainButton, isLoading && styles.disabledButton]}
           onPress={handleAuth}
+          disabled={isLoading}
         >
           <Text style={styles.mainButtonText}>
-            {isSignUp ? 'SIGN UP' : 'LOG IN'}
+            {isLoading ? 'LOADING...' : (isSignUp ? 'SIGN UP' : 'LOG IN')}
           </Text>
         </TouchableOpacity>
         
@@ -170,5 +162,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     marginTop: 10,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
-import { updateProfile } from '../services/simpleAuth';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
 
 type UsernameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Username'>;
 
@@ -13,22 +13,27 @@ interface Props {
 
 export default function UsernameScreen({ navigation }: Props) {
   const [displayName, setDisplayName] = useState('');
-  const { username } = useAuth();
+  const { user } = useAuth();
 
   const handleComplete = async () => {
-    if (!username) {
-      Alert.alert('Error', 'No username found');
+    if (!user) {
+      Alert.alert('Error', 'No user found');
       return;
     }
 
     try {
       // Update profile with display name
       if (displayName.trim()) {
-        await updateProfile(username, { displayName: displayName.trim() });
+        const { error } = await supabase
+          .from('users')
+          .update({ display_name: displayName.trim() })
+          .eq('id', user.id);
+        
+        if (error) throw error;
       }
       
       // Navigation will automatically switch to authenticated stack
-      // since username is already set in auth context
+      // since user is already set in auth context
     } catch (error) {
       Alert.alert('Error', 'Failed to update profile. Please try again.');
     }
@@ -50,7 +55,7 @@ export default function UsernameScreen({ navigation }: Props) {
         </Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Your username: @{username}</Text>
+          <Text style={styles.label}>Your username: @{user?.username}</Text>
           <Text style={styles.hint}>
             This is your unique identifier
           </Text>
@@ -68,9 +73,9 @@ export default function UsernameScreen({ navigation }: Props) {
         </View>
 
         <TouchableOpacity
-          style={[styles.completeButton, !username && styles.disabledButton]}
+          style={[styles.completeButton, !user && styles.disabledButton]}
           onPress={handleComplete}
-          disabled={!username}
+          disabled={!user}
         >
           <Text style={styles.completeText}>Complete Setup</Text>
         </TouchableOpacity>

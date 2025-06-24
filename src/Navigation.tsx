@@ -29,8 +29,12 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function Navigation() {
-  const { username } = useAuth();
-  const isAuthenticated = !!username;
+  const { user, loading } = useAuth();
+  const isAuthenticated = !!user;
+  
+  if (loading) {
+    return null; // Or a loading screen
+  }
 
   return (
     <NavigationContainer>
