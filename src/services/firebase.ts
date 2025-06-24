@@ -1,8 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence, Auth } from 'firebase/auth';
+import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth as getFirebaseAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage as initializeStorage, FirebaseStorage } from 'firebase/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getStorage as getFirebaseStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC5YUv8EfzzwXXwZcMw8O-QhgSaddudLEc",
@@ -14,34 +13,43 @@ const firebaseConfig = {
   measurementId: "G-BY63W1ZP5E"
 };
 
-// Initialize Firebase App (safe to do at module level)
-const app = initializeApp(firebaseConfig);
-
-// Lazy initialization for services
+let app: FirebaseApp;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 
-// Getter functions that initialize on first use
-export const getAuth = () => {
+// Initialize Firebase app if not already initialized to prevent errors on hot-reloads
+if (!getApps().length) {
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (e) {
+    console.error("Firebase initialization error", e);
+    app = getApp(); // Fallback to getApp() if initialization fails
+  }
+} else {
+  app = getApp();
+}
+
+// Lazy initialization for Auth service
+export const getAuth = (): Auth => {
   if (!auth) {
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage)
-    });
+    auth = getFirebaseAuth(app);
   }
   return auth;
 };
 
-export const getDb = () => {
+// Lazy initialization for Firestore service
+export const getDb = (): Firestore => {
   if (!db) {
     db = getFirestore(app);
   }
   return db;
 };
 
-export const getStorage = () => {
+// Lazy initialization for Storage service
+export const getStorage = (): FirebaseStorage => {
   if (!storage) {
-    storage = initializeStorage(app);
+    storage = getFirebaseStorage(app);
   }
   return storage;
 };

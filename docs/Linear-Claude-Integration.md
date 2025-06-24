@@ -73,7 +73,12 @@ Major bugs get dedicated issues with:
 - **Backlog**: Not yet started
 - **In Review**: Ready for user testing
 
-### 3. Code References
+### 3. Issue Updates
+- **NEVER rewrite issue descriptions** - only update existing checkboxes
+- Check off tasks as they're completed using the existing format
+- Add comments for significant updates, but preserve original issue structure
+
+### 4. Code References
 When referencing code in Linear issues, use format:
 - `src/screens/CameraScreen.tsx:81` (specific line)
 - `src/screens/CameraScreen.tsx:74-76` (line range)

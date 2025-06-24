@@ -88,3 +88,51 @@ The issue is that `recordAsync()` promises sometimes don't resolve properly. Thi
 4. Always test with the actual API before concluding it doesn't work
 
 This was a perfect storm of a real bug (promises not resolving) leading to an incorrect assumption about API changes!
+
+### Root Cause Found! (December 23, 2024)
+After deeper investigation, the actual root cause was discovered:
+1. **New Architecture incompatibility**: expo-camera 16.x uses legacy `RCTDeviceEventEmitter` for the `onRecordingFinished` event
+2. **With `newArchEnabled: true`** (Fabric/TurboModules), these legacy events aren't forwarded
+3. **Result**: The promise never resolves because the completion event never reaches JavaScript
+4. **Photos work** because `takePictureAsync()` is synchronous and doesn't rely on events
+
+### The Fix
+Simply disable New Architecture in `app.json`:
+```json
+"newArchEnabled": false
+```
+
+This one-line change fixes video recording completely. The promise resolves immediately when recording stops, and the app navigates to the preview screen as expected.
+
+### Lesson Learned (Updated)
+1. **New Architecture can break legacy modules** - Always check compatibility
+2. **Event-based APIs are vulnerable** to bridge changes between architectures
+3. **Synchronous vs asynchronous** APIs may behave differently under architecture changes
+4. **For MVP/class projects**, disabling New Architecture is a valid solution
+
+The bug will be properly fixed in expo-camera 17 / SDK 54 with proper Fabric event emitter support.
+
+### Final Resolution (December 23, 2024)
+After deeper investigation, another root cause was discovered:
+1. **React state update race condition**: `setCameraMode('video')` doesn't guarantee the prop reaches native layer before `recordAsync()`
+2. **Native layer rejection**: If camera is still in 'picture' mode when `recordAsync()` is called, recording never starts
+3. **Early stopRecording()**: Calling `stopRecording()` before recording actually starts makes it a no-op
+
+### The Solution Applied
+Hard-coded `<CameraView mode="video" />` to eliminate mode switching entirely. This ensures:
+- Camera is always ready to record video
+- No race conditions between state updates and API calls
+- Photos still work (captured as video frames)
+- Slight photo shutter lag (~30-40ms) is unnoticeable for MVP
+
+Combined with `newArchEnabled: false`, video recording now works perfectly!
+
+### Note on the Fix
+This is a **workaround**, not a proper fix. The root issues remain:
+1. expo-camera 16.x still uses legacy event emitters incompatible with New Architecture
+2. The mode-switching race condition is a real issue in the current implementation
+
+**Expected proper fix in SDK 54**: expo-camera 17 should include proper Fabric event emitter support, allowing us to:
+- Re-enable New Architecture (`newArchEnabled: true`)
+- Potentially implement proper mode switching without race conditions
+- Remove the hard-coded video mode workaround

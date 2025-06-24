@@ -182,6 +182,7 @@ export default function CameraScreen() {
         style={styles.camera} 
         facing={facing}
         flash={flash}
+        mode="video"
         ref={cameraRef}
       />
       

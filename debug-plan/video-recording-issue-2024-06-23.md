@@ -243,3 +243,46 @@ const startRecording = async () => {
 3. **Known bugs can be misleading** - The hanging promise made it seem like the API had changed
 4. **Expo Go has limitations** - Some features work better in development builds
 5. **Always test assumptions** - The "startRecording is not a function" error immediately revealed the truth
+
+## Root Cause Discovered (December 23, 2024)
+
+### The Real Issue: New Architecture Incompatibility
+
+After thorough investigation, the root cause was identified:
+
+1. **expo-camera 16.x uses legacy event system**: The module still uses `RCTDeviceEventEmitter` for the `onRecordingFinished` event
+2. **New Architecture doesn't forward legacy events**: With `newArchEnabled: true` (Fabric/TurboModules), these events never reach JavaScript
+3. **Promise never resolves**: Without the completion event, the `recordAsync()` promise stays pending forever
+
+### Why Photos Work
+- `takePictureAsync()` is synchronous - it immediately returns the image path
+- No dependency on asynchronous events crossing the bridge
+
+### The Simple Fix
+In `app.json`, change:
+```json
+"newArchEnabled": true
+```
+to:
+```json
+"newArchEnabled": false
+```
+
+### Results
+- Video recording works immediately upon button release
+- Promise resolves with video URI as expected
+- Navigation to preview screen happens automatically
+- No more 15-second timeout needed
+
+### Future
+- expo-camera 17 / SDK 54 will include proper Fabric event emitter support
+- Can re-enable New Architecture once the fix lands
+
+## Final Update: The Actual Working Fix
+
+The **hard-coded video mode** was the final piece that made video recording work:
+```tsx
+<CameraView mode="video" ... />
+```
+
+This workaround, combined with `newArchEnabled: false`, completely resolved the issue. While not ideal (introduces ~30-40ms photo lag), it's acceptable for the MVP and we expect SDK 54 to provide a proper solution.

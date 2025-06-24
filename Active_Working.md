@@ -1,50 +1,62 @@
 # Active Working Document
 
-## Week 2 Goal: Camera & Media Capture
-Implement camera functionality with photo/video capture and media preview.
+## Week 3 Goal: Auth Refactor + Snap Storage & Viewing
+First refactor auth to fix Firebase issues, then continue with snap storage implementation.
 
 ### Core Principles
 - **Simplicity First**: Class project, use defaults, basic error handling
 - **Requirements Only**: Build ONLY what's in the PRD
 - **MVP Focus**: Working > Perfect
 - **Minimal Dependencies**: Only add packages when necessary
+- **Linear Check**: Previous week must have user acceptance sign-off ✅
 
 ## Progress Tracker
 
-### Track 1: Camera Implementation
-- [x] Install expo-camera
-- [x] Create CameraScreen component
-- [x] Implement tap for photo
-- [x] Implement hold for video (10s max)
-- [x] Add front/back camera toggle
-- [x] Add flash on/off toggle
+### Track 0: Auth Refactor (Priority Fix)
+- [ ] Remove Firebase Auth SDK completely
+- [ ] Delete phone verification screens
+- [ ] Update AuthScreen with username/password
+- [ ] Create simpleAuth.ts service
+- [ ] Create AuthContext for state management
+- [ ] Update Navigation to use context
+- [ ] Update all user.uid references to username
 
-### Track 2: Media Preview
-- [x] Create MediaPreviewScreen component
-- [x] Show captured media fullscreen
-- [x] Add retake button
-- [x] Add caption text input
-- [x] Implement save to camera roll
+### Track 1: Firebase Storage
+- [x] Add send button to MediaPreviewScreen
+- [x] Upload photos/videos to Firebase Storage
+- [x] Create snap documents in Firestore
+- [x] Show loading state during upload
+- [x] Navigate to home after successful send
+
+### Track 2: Snap Lifecycle
+- [x] Create snap inbox screen (view sent snaps)
+- [x] Send snap to self for testing
+- [x] View snap with tap-and-hold gesture
+- [x] Auto-delete snap after viewing
+- [ ] Implement 24-hour story expiration (Cloud Function)
 
 ### 📝 Notes
-- Camera implementation complete with tap for photo, hold for video
-- Video recording limited to 10 seconds max
-- Media preview allows caption, retake, and save to gallery
-- Navigation temporarily set to authenticated for testing
-- Used expo-camera, expo-media-library, and expo-av packages
+- Week 2 signed off on December 23, 2024
+- Video recording bug resolved with workaround
+- Firebase Storage integration complete
+- Snap lifecycle working: capture → send → view → delete
+- Created HomeScreen as main navigation hub
+- All screens connected in Navigation.tsx
 
 ### 🐛 Issues Encountered
-- None - implementation went smoothly
+- None - smooth implementation!
 
 ### 🎯 Exit Criteria (from Technical Plan)
-**Camera Implementation:**
-- [ ] Camera opens when app launches
-- [ ] Can capture photos
-- [ ] Can record videos up to 10 seconds
-- [ ] Camera controls work
+**Firebase Storage:**
+- [x] Media uploads successfully
+- [x] Snap metadata saved to Firestore
+- [x] Upload progress shown to user
 
-**Media Preview:**
-- [ ] Preview shows after capture
-- [ ] Can add caption text
-- [ ] Can save to device gallery
-- [ ] Can retake photo/video
+**Snap Lifecycle:**
+- [x] Can send snap to self
+- [x] Snap disappears after viewing
+- [ ] Stories expire after 24 hours (Cloud Function needed)
+- [x] View count increments (viewedBy array)
+
+### 🏁 MVP Milestone
+User can capture, send to self, and watch snap disappear

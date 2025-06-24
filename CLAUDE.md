@@ -62,6 +62,7 @@ src/
 2. **Requirements Only**: Build ONLY what's in the PRD. No extra features.
 3. **MVP Focus**: Working > Perfect. Get features functional before polishing.
 4. **Minimal Dependencies**: Only add packages when absolutely necessary.
+5. **Linear Check**: Before starting a new week, check Linear to confirm previous week has user acceptance sign-off.
 
 ## Key Features to Implement
 
@@ -183,6 +184,12 @@ Use table format:
 - Never git commit without permission or direction
 - Never commit before we test the phase
 - Always remember to overask
+
+### Linear Issue Management Rules
+- **NEVER rewrite Linear issue descriptions** - only update existing checkboxes
+- Check off tasks as they're completed using the existing format
+- Add comments for significant updates, but preserve original issue structure
+- Never check off "User Acceptance" criteria - that's for humans only
 
 The project is currently just the Expo starter template ("Hello World"). Implementation follows the 6-week plan in TechnicalPlan.md, starting with Phase 1 (Foundation & Auth).
 

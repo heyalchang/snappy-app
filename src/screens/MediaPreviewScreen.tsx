@@ -17,6 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
+import { sendSnapToSelf } from '../services/media';
 
 type MediaPreviewScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SnapPreview'>;
 type MediaPreviewScreenRouteProp = RouteProp<RootStackParamList, 'SnapPreview'>;
@@ -27,6 +28,8 @@ export default function MediaPreviewScreen() {
   const { mediaUri, mediaType } = route.params;
   const [caption, setCaption] = useState('');
   const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Initialize video player for video playback
   const player = useVideoPlayer(mediaType === 'video' ? mediaUri : null, player => {
@@ -57,9 +60,43 @@ export default function MediaPreviewScreen() {
     }
   };
 
-  const sendSnap = () => {
-    // TODO: Implement send functionality in Week 3
-    Alert.alert('Coming Soon', 'Send functionality will be implemented in Week 3');
+  const sendSnap = async () => {
+    try {
+      setSending(true);
+      setUploadProgress(0);
+
+      await sendSnapToSelf(
+        mediaUri,
+        mediaType,
+        caption,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
+
+      Alert.alert(
+        'Sent!', 
+        'Your snap has been sent to yourself for testing.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to home/inbox to see the snap
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+              });
+            }
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('Send snap error:', error);
+      Alert.alert('Error', error.message || 'Failed to send snap');
+    } finally {
+      setSending(false);
+      setUploadProgress(0);
+    }
   };
 
   const retake = () => {
@@ -122,15 +159,26 @@ export default function MediaPreviewScreen() {
           <TouchableOpacity 
             style={styles.retakeButton}
             onPress={retake}
+            disabled={sending}
           >
             <Text style={styles.retakeText}>Retake</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.sendButton}
+            style={[styles.sendButton, sending && styles.sendButtonDisabled]}
             onPress={sendSnap}
+            disabled={sending}
           >
-            <Text style={styles.sendButtonText}>Send →</Text>
+            {sending ? (
+              <View style={styles.uploadingContainer}>
+                <ActivityIndicator color="#000" size="small" />
+                <Text style={styles.sendButtonText}>
+                  {uploadProgress > 0 ? `${Math.round(uploadProgress)}%` : 'Sending...'}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.sendButtonText}>Send →</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -217,5 +265,13 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#E6E600',
+  },
+  uploadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });

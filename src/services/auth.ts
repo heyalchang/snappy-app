@@ -4,6 +4,7 @@ import {
   ConfirmationResult,
   PhoneAuthProvider,
   signInWithCredential,
+  signInAnonymously,
   onAuthStateChanged,
   User
 } from 'firebase/auth';
@@ -40,14 +41,13 @@ export const verifyCode = async (code: string) => {
     // In production, this would verify the code with Firebase
     console.log('Verifying code:', code);
     
-    // For demo purposes, accept any 6-digit code
+    // For demo purposes, accept any 6-digit code and sign in anonymously
     if (code.length === 6) {
+      const auth = getAuth();
+      const userCredential = await signInAnonymously(auth);
       return {
         success: true,
-        user: {
-          uid: 'demo-user-id',
-          phoneNumber: '+1234567890'
-        }
+        user: userCredential.user,
       };
     } else {
       throw new Error('Invalid verification code');
