@@ -15,7 +15,7 @@ export async function signUp(username: string): Promise<AuthUser> {
   try {
     // Check if username already exists
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('profiles')
       .select('username')
       .eq('username', username.toLowerCase())
       .single();
@@ -36,12 +36,10 @@ export async function signUp(username: string): Promise<AuthUser> {
 
     // Create user profile
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .insert({
         id: authData.user.id,
         username: username.toLowerCase(),
-        display_name: username,
-        snap_score: 0,
       })
       .select()
       .single();
@@ -51,10 +49,10 @@ export async function signUp(username: string): Promise<AuthUser> {
     return {
       id: userData.id,
       username: userData.username,
-      displayName: userData.display_name,
-      avatarEmoji: userData.avatar_emoji,
-      avatarColor: userData.avatar_color,
-      snapScore: userData.snap_score,
+      displayName: userData.username,  // Profiles table doesn't have these fields yet
+      avatarEmoji: null,
+      avatarColor: null,
+      snapScore: 0,
     };
   } catch (error) {
     throw error;
@@ -74,7 +72,7 @@ export async function signIn(username: string): Promise<AuthUser> {
 
     // Get user profile
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
       .single();
@@ -84,10 +82,10 @@ export async function signIn(username: string): Promise<AuthUser> {
     return {
       id: userData.id,
       username: userData.username,
-      displayName: userData.display_name,
-      avatarEmoji: userData.avatar_emoji,
-      avatarColor: userData.avatar_color,
-      snapScore: userData.snap_score,
+      displayName: userData.username,  // Profiles table doesn't have these fields yet
+      avatarEmoji: null,
+      avatarColor: null,
+      snapScore: 0,
     };
   } catch (error) {
     throw error;
@@ -105,7 +103,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     if (!user) return null;
 
     const { data: userData, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
@@ -115,10 +113,10 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return {
       id: userData.id,
       username: userData.username,
-      displayName: userData.display_name,
-      avatarEmoji: userData.avatar_emoji,
-      avatarColor: userData.avatar_color,
-      snapScore: userData.snap_score,
+      displayName: userData.username,  // Profiles table doesn't have these fields yet
+      avatarEmoji: null,
+      avatarColor: null,
+      snapScore: 0,
     };
   } catch {
     return null;
@@ -127,7 +125,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
 export async function checkUsernameExists(username: string): Promise<boolean> {
   const { data } = await supabase
-    .from('users')
+    .from('profiles')
     .select('username')
     .eq('username', username.toLowerCase())
     .single();

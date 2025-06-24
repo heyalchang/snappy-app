@@ -1,88 +1,73 @@
 export interface Database {
   public: {
     Tables: {
-      users: {
+      profiles: {
         Row: {
           id: string;
           username: string;
-          display_name: string | null;
-          avatar_emoji: string | null;
-          avatar_color: string | null;
-          snap_score: number;
-          created_at: string;
-          updated_at: string;
+          avatar_url: string | null;
+          created_at: string | null;
         };
         Insert: {
-          id?: string;
+          id: string;
           username: string;
-          display_name?: string | null;
-          avatar_emoji?: string | null;
-          avatar_color?: string | null;
-          snap_score?: number;
-          created_at?: string;
-          updated_at?: string;
+          avatar_url?: string | null;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
           username?: string;
-          display_name?: string | null;
-          avatar_emoji?: string | null;
-          avatar_color?: string | null;
-          snap_score?: number;
-          created_at?: string;
-          updated_at?: string;
+          avatar_url?: string | null;
+          created_at?: string | null;
         };
       };
       friendships: {
         Row: {
-          id: string;
           user_id: string;
           friend_id: string;
-          created_at: string;
+          status: string | null;
+          created_at: string | null;
         };
         Insert: {
-          id?: string;
           user_id: string;
           friend_id: string;
-          created_at?: string;
+          status?: string | null;
+          created_at?: string | null;
         };
         Update: {
-          id?: string;
           user_id?: string;
           friend_id?: string;
-          created_at?: string;
+          status?: string | null;
+          created_at?: string | null;
         };
       };
       messages: {
         Row: {
-          id: string;
-          room_id: string;
-          sender_id: string;
+          id: number;
+          sender_id: string | null;
+          room_id: string | null;
           content: string | null;
-          type: 'text' | 'photo' | 'video';
+          created_at: string | null;
+          type: string | null;
           media_url: string | null;
-          created_at: string;
-          read_at: string | null;
         };
         Insert: {
-          id?: string;
-          room_id: string;
-          sender_id: string;
+          id?: number;
+          sender_id?: string | null;
+          room_id?: string | null;
           content?: string | null;
-          type?: 'text' | 'photo' | 'video';
+          created_at?: string | null;
+          type?: string | null;
           media_url?: string | null;
-          created_at?: string;
-          read_at?: string | null;
         };
         Update: {
-          id?: string;
-          room_id?: string;
-          sender_id?: string;
+          id?: number;
+          sender_id?: string | null;
+          room_id?: string | null;
           content?: string | null;
-          type?: 'text' | 'photo' | 'video';
+          created_at?: string | null;
+          type?: string | null;
           media_url?: string | null;
-          created_at?: string;
-          read_at?: string | null;
         };
       };
       posts: {

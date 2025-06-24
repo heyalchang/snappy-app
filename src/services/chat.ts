@@ -2,14 +2,14 @@ import { supabase } from './supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface Message {
-  id: string;
+  id: number;
   room_id: string;
   sender_id: string;
   content: string | null;
   type: 'text' | 'photo' | 'video';
   media_url: string | null;
   created_at: string;
-  read_at: string | null;
+  read_at?: string | null;
   sender?: {
     username: string;
     avatar_emoji?: string | null;
@@ -50,7 +50,7 @@ export async function sendTextMessage(
     })
     .select(`
       *,
-      sender:users!sender_id (
+      sender:profiles!sender_id (
         username,
         avatar_emoji,
         avatar_color
@@ -81,7 +81,7 @@ export async function sendMediaMessage(
     })
     .select(`
       *,
-      sender:users!sender_id (
+      sender:profiles!sender_id (
         username,
         avatar_emoji,
         avatar_color
@@ -102,7 +102,7 @@ export async function getMessages(
     .from('messages')
     .select(`
       *,
-      sender:users!sender_id (
+      sender:profiles!sender_id (
         username,
         avatar_emoji,
         avatar_color
@@ -123,7 +123,7 @@ export async function getChatRooms(userId: string): Promise<ChatRoom[]> {
     .from('messages')
     .select(`
       *,
-      sender:users!sender_id (
+      sender:profiles!sender_id (
         username,
         avatar_emoji,
         avatar_color
@@ -157,8 +157,8 @@ export async function getChatRooms(userId: string): Promise<ChatRoom[]> {
   
   if (otherUserIds.length > 0) {
     const { data: users } = await supabase
-      .from('users')
-      .select('id, username, avatar_emoji, avatar_color')
+      .from('profiles')
+      .select('id, username')
       .in('id', otherUserIds);
     
     // Map user info to rooms
@@ -167,8 +167,8 @@ export async function getChatRooms(userId: string): Promise<ChatRoom[]> {
       if (room) {
         room.otherUser = {
           username: user.username,
-          avatar_emoji: user.avatar_emoji,
-          avatar_color: user.avatar_color,
+          avatar_emoji: null,
+          avatar_color: null,
         };
       }
     });
@@ -213,7 +213,7 @@ export function subscribeToMessages(
           .from('messages')
           .select(`
             *,
-            sender:users!sender_id (
+            sender:profiles!sender_id (
               username,
               avatar_emoji,
               avatar_color
