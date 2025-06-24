@@ -1,6 +1,6 @@
 # Week 3 Testing Exit Criteria
 
-## Test Date: December 23, 2024
+## Test Date: June 23, 2025
 
 ### Prerequisites
 - User is authenticated (from Week 1)
