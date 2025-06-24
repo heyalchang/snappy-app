@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "MyHelloWorldApp",
-    "slug": "MyHelloWorldApp",
+    "name": "Snappy",
+    "slug": "snappy-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,10 +10,14 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFFC00"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to take photos and record videos for sharing.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone to record audio for videos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +28,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-video"
+    ]
   }
 }

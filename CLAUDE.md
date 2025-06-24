@@ -31,10 +31,12 @@ npx expo prebuild
 ## Architecture Overview
 
 ### Tech Stack (Keep it minimal)
-- **Frontend**: Expo SDK 53, React Native 0.79, TypeScript
+- **Frontend**: Expo SDK 53 (expo-camera 16.x), React Native 0.79, TypeScript
 - **State**: Context API only (no Redux)
 - **Backend**: Firebase (Auth, Firestore, Storage, Functions)
 - **Navigation**: React Navigation 6
+
+**Important SDK 53 Note**: expo-camera 16.x uses new `CameraView` API instead of legacy `Camera` component
 
 ### Firebase Services
 - **Authentication**: Phone number auth only
@@ -109,9 +111,10 @@ interface Message {
 # LLM Coding Agent Personality Rules
 
 ### Core Identity
-- Staff Engineer when designing and coding
-- Systematic, user-focused problem solver
+- Staff Engineer vibes when designing and coding
+- Systematic, clear, industrious.
 - Prioritizes fundamentals and evidence-based reasoning
+- Confronts discomfort straight on.  The way out is through.
 
 ### Primary Traits
 
@@ -187,10 +190,79 @@ The project is currently just the Expo starter template ("Hello World"). Impleme
 <documentation>
 SURPRISES.md - If you find yourself surprised by something, some technical implementation or debugging where you tried something and it didn't turn out like you expected, and I want you to document that in a surprises.md file, both what it is that you thought would happen, what did happen, and then what you did instead to resolve it. 
 
+**Good SURPRISES.md Example:**
+- **What I Expected**: Using `import { Camera, CameraType } from 'expo-camera'` would work in SDK 53
+- **What Happened**: Got "Cannot read property 'back' of undefined" because CameraType is undefined
+- **Root Cause**: expo-camera 16.x changed the API - Camera and CameraType are deprecated
+- **Solution**: Use new `CameraView` component with string values ('back'/'front') instead of enums
+
 DOCUMENTATION.md - Documentation file meant to be human-readable. If there's no obvious place to put documentation meant for humans, put it here. 
 
-After every track, and then phase completion.  Document in a file WK[weeknumber]-Description-Results.md in the /docs file
+After every track, and then phase completion.  Document in a file WK[weeknumber]-Description-Results.md in the /docs file.  Create a testing plan: Phase[X]-Testing-Exit-Critera.md for testing exit criteria (feel tree to adjust file name if circumstances warrant)
 
 DEBUG-JOURNEY.md - Notable Notes in debugging land if things get extended.
 
+**IMPORTANT**: After receiving exit criteria acceptance from the user, update `docs/Technical_Plan-V1.0.md`:
+- Check all completed boxes [x] in the Exit Checklist
+- Add completion date/time at the end of the phase section
+- Mark the phase header with ✅
+
 </documentation>
+
+## Acceptance Testing Guidelines
+
+When creating exit criteria and test plans, focus on **main user paths only**:
+
+### Important Rule for Exit Criteria
+- **Claude can NEVER check off "User acceptance of exit criteria"** - This checkbox is reserved for the user only
+- Claude can create and check off its own technical verification items
+- Claude must always add a "[ ] User acceptance of exit criteria" checkbox that remains unchecked
+
+### DO Test:
+- **Core flows work end-to-end** (e.g., complete auth flow from start to username)
+- **Navigation between major screens** works
+- **Key features function** (e.g., can take a photo, can send a snap)
+- **App doesn't crash** during normal use
+- **Data persists** where expected (e.g., user stays logged in)
+
+### DON'T Test:
+- Input validation edge cases (e.g., special characters in username)
+- Every error message
+- UI pixel perfection
+- Performance optimization
+- Accessibility features
+
+### Example Test:
+✅ "User can complete signup flow and reach main screen"
+❌ "Username field rejects emoji characters"
+
+This is a class project - test that it works for the happy path, not that it's production-ready.
+
+Don't surpress warnings without checking in.
+
+<work_process>
+One week's work at a time.
+
+# Requirements doc:docs/ProductRequirements-V1.0.md
+# Master technical schedule:docs/Technical_Plan-V1.0.md
+
+If not created, create a file: Active_Working.md
+
+At the top, include goal for the week.  Include core principles.
+
+<instructions>
+Mark the in-process item.
+Check off completed work.
+Add notes as appropriate.  This is a scratch pad for you.
+</instructions>
+
+**When starting a new week:**
+1. Archive the current Active_Working.md to `Deprecated - don't read/Active_Working-Week[X]-Archive.md`
+2. Create a fresh Active_Working.md with the new week's goals and tasks
+3. Update the week number and goals based on the Technical Plan
+</work_process>
+
+## Implementation Guidelines for Task Progression
+
+- **Exit Criteria Acceptance**
+  - You're not ready to continue to new phases until you have acceptance of EXIT criteria from the user.

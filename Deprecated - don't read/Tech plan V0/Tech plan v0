@@ -1,0 +1,261 @@
+# SnapClone Technical Implementation Plan - MVP
+
+## Core Principles
+- **Simplest path to MVP** - This is a class project, not commercial
+- **Requirements only** - No extra features beyond PRD
+- **Basic security only** - HTTPS and Firebase auth is sufficient
+- **Working > Perfect** - Focus on functionality over optimization
+
+## Phase 1: Foundation & Auth (Week 1)
+
+**Setup & Infrastructure**
+- Initialize Expo project with TypeScript
+- Configure Firebase project (basic setup)
+- Implement phone auth flow with SMS verification
+- Create user profile system
+
+**Key Deliverables:**
+- Working phone authentication
+- User profile creation (username, display name)
+- Basic navigation shell (Camera, Chat, Stories)
+
+## Phase 2: Camera Core (Week 2)
+
+**Camera Implementation**
+- Basic expo-camera setup
+- Tap for photo, hold for video (10s max)
+- Camera controls: flip, flash toggle
+- Media preview with retake option
+- Caption text overlay
+- Save to camera roll option
+
+## Phase 3: Snap System (Week 3)
+
+**Core Snap Features**
+- Upload to Firebase Storage
+- Implement snap data model per PRD
+- Send to individuals AND/OR story
+- Auto-delete after viewing (direct snaps)
+- 24-hour story expiration (Cloud Function)
+- View tracking and counters
+
+## Phase 4: Social & Messaging (Week 4)
+
+**Friends System**
+- Add friends by username
+- Simple friend requests (accept/decline)
+- Basic friends list
+
+**Real-time Chat**
+- Text messaging with Firestore
+- Typing indicators
+- Read receipts
+- Send saved media from gallery
+
+**Stories Feed**
+- Chronological friend stories
+- Mark viewed/unviewed
+- Story thumbnails
+- View count for own stories
+
+## Phase 5: Basic Offline Support (Week 5)
+
+**Offline Capabilities**
+- Queue snaps for upload when offline
+- Basic message caching
+- Handle network errors gracefully
+
+## Phase 6: Filters & Final MVP (Week 6)
+
+**Filter System**
+- Basic filters: B&W, Sepia, Vintage  
+- Simple brightness/contrast adjustment
+- One AI filter using Replicate API (e.g., style transfer or cartoon effect)
+- Plugin architecture for future expansion
+
+**Final Polish**
+- Bug fixes
+- Basic UI cleanup
+- Test all features end-to-end
+
+## Technical Architecture
+
+### Frontend Stack (Minimal)
+```
+// Core
+- Expo SDK (latest stable)
+- TypeScript
+- React Navigation 6
+
+// State Management  
+- Context API only (keep it simple)
+
+// Media
+- expo-camera
+- expo-media-library  
+- expo-av for video
+```
+
+### Backend Architecture (Simple Firebase)
+```
+// Firebase Services Only
+- Auth: Phone authentication
+- Firestore: Database for users, snaps, messages
+- Storage: Media files
+- Functions: Story expiration (24h cleanup)
+
+// Cloud Functions
+- deleteExpiredStories: Runs daily to clean up old stories
+- applyReplicateFilter: Calls Replicate API for AI filter
+
+// External API
+- Replicate API: For one AI-powered filter
+```
+
+### Data Models (Simplified)
+
+```typescript
+// User Profile (from PRD)
+interface User {
+  uid: string;
+  username: string;
+  displayName?: string;
+  phoneNumber: string;
+  profilePhotoUrl?: string;
+  createdAt: Timestamp;
+  friends: string[];
+}
+
+// Snap (from PRD)
+interface Snap {
+  snapId: string;
+  creatorId: string;
+  mediaUrl: string;
+  mediaType: 'photo' | 'video';
+  caption?: string;
+  recipients: string[] | 'story';
+  createdAt: Timestamp;
+  expiresAt: Timestamp;
+  viewedBy: Array<{
+    uid: string;
+    timestamp: Timestamp;
+  }>;
+}
+
+// Message (from PRD)
+interface Message {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  type: 'text' | 'snap' | 'media';
+  content: string;
+  sentAt: Timestamp;
+  readAt?: Timestamp;
+}
+```
+
+### Simple Project Structure
+```
+src/
+  screens/
+    PhoneAuthScreen.tsx
+    VerificationScreen.tsx
+    ProfileSetupScreen.tsx
+    CameraScreen.tsx
+    ChatListScreen.tsx
+    StoryFeedScreen.tsx
+    ChatScreen.tsx
+    ProfileScreen.tsx
+      
+  components/
+    CameraControls.tsx
+    MediaPreview.tsx
+    MessageBubble.tsx
+    StoryThumbnail.tsx
+      
+  services/
+    firebase.ts    // All Firebase logic in one file
+    media.ts       // Camera and media helpers
+      
+  utils/
+    helpers.ts     // General utilities
+    
+  types/
+    index.ts       // All types in one file
+    
+  App.tsx
+  Navigation.tsx
+```
+
+## MVP Checklist
+
+### Week 1
+- [ ] Phone auth working
+- [ ] User can create profile
+- [ ] Basic navigation between screens
+
+### Week 2
+- [ ] Camera takes photos
+- [ ] Camera records videos (10s max)
+- [ ] Can add caption to media
+- [ ] Can save to camera roll
+
+### Week 3
+- [ ] Snaps upload to Firebase
+- [ ] Snaps auto-delete after viewing
+- [ ] Stories expire after 24 hours
+- [ ] View counters work
+
+### Week 4
+- [ ] Can add friends by username
+- [ ] Text messaging works
+- [ ] Can see friends' stories
+- [ ] Typing indicators work
+
+### Week 5
+- [ ] Offline snap queue works
+- [ ] App handles network errors
+
+### Week 6
+- [ ] Three filters work (B&W, Sepia, Vintage)
+- [ ] One Replicate AI filter works
+- [ ] All features tested
+- [ ] Ready for class demo
+
+## MVP Requirements Only
+
+**What we're building:**
+- Phone auth (required by PRD)
+- Camera that captures photos/videos
+- Snaps that disappear after viewing
+- 24-hour stories
+- Basic friend system
+- Text chat
+- 3 simple filters + 1 Replicate AI filter
+
+**What we're NOT building:**
+- E2E encryption
+- Biometric authentication
+- Screenshot detection
+- Privacy settings
+- Performance optimizations
+- Analytics
+- Error tracking (beyond console.log)
+- Push notifications
+- Voice notes
+- Group features
+- Discover/Spotlight
+- Memories
+- Any features not in the PRD
+
+## Simple Implementation Guidelines
+
+1. **Use Firebase defaults** - Don't overconfigure
+2. **Basic error handling** - Try/catch and alert() is fine
+3. **No optimization** - Get it working first
+4. **Minimal dependencies** - Only add packages when absolutely needed
+5. **Class project scope** - This is for learning, not production
+
+## Notes
+
+This is a simplified MVP for a class project. Security is basic (HTTPS + Firebase Auth), performance is not optimized, and we're only building exactly what's in the requirements document.

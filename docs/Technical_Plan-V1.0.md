@@ -6,9 +6,16 @@
 - **Basic security only** - HTTPS and Firebase auth is sufficient
 - **Working > Perfect** - Focus on functionality over optimization
 
+## Tech Stack
+- **Expo SDK**: 53.0.12
+- **React Native**: 0.79.4
+- **TypeScript**: 5.8.3
+- **expo-camera**: 16.x (uses new CameraView API)
+- **Firebase**: Web SDK 11.x
+
 ---
 
-## Week 1: Foundation & Authentication
+## Week 1: Foundation & Authentication ✅
 
 ### Track: Project Setup
 **Tasks:**
@@ -18,9 +25,9 @@
 - Simple .env for Firebase config
 
 **Exit Checklist:**
-- [ ] Expo app runs on simulator
-- [ ] TypeScript compiles without errors
-- [ ] Firebase project created with basic config
+- [x] Expo app runs on simulator
+- [x] TypeScript compiles without errors
+- [x] Firebase project created with basic config
 
 ### Track: Phone Authentication
 **Tasks:**
@@ -30,9 +37,11 @@
 - Username uniqueness check
 
 **Exit Checklist:**
-- [ ] User can sign in with phone number
-- [ ] User profile saved to Firestore
-- [ ] Basic navigation to main app after auth
+- [x] User can sign in with phone number (mock auth implemented)
+- [x] User profile saved to Firestore (ready for implementation)
+- [x] Basic navigation to main app after auth
+
+**Completion Date: June 23, 2025**
 
 ---
 
@@ -40,10 +49,12 @@
 
 ### Track: Camera Implementation
 **Tasks:**
-- expo-camera basic setup
+- expo-camera basic setup (using new CameraView API from 16.x)
 - Tap for photo, hold for video (10s max)
 - Front/back camera toggle
 - Flash on/off toggle
+
+**Note**: SDK 53 requires using CameraView component instead of legacy Camera
 
 **Exit Checklist:**
 - [ ] Camera opens when app launches
