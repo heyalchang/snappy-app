@@ -38,9 +38,8 @@ export default function AuthScreen({ navigation }: Props) {
       if (isSignUp) {
         // Sign up with username only
         await signUp(username.trim());
-        // Auto sign in after signup
-        await authSignIn(username.trim());
-        navigation.navigate('Username');
+        // Navigate to Username screen before signing in
+        navigation.navigate('Username', { username: username.trim() });
       } else {
         // Sign in with username only
         await authSignIn(username.trim());

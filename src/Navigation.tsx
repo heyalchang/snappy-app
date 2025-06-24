@@ -15,7 +15,7 @@ import { FriendsScreen, ChatScreen, StoriesScreen } from './screens/PlaceholderS
 
 export type RootStackParamList = {
   Auth: undefined;
-  Username: undefined;
+  Username: { username: string };
   Home: undefined;
   Camera: undefined;
   SnapPreview: { mediaUri: string; mediaType: 'photo' | 'video' };

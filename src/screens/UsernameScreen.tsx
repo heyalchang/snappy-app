@@ -1,41 +1,47 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { getCurrentUser } from '../services/auth';
 
 type UsernameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Username'>;
+type UsernameScreenRouteProp = RouteProp<RootStackParamList, 'Username'>;
 
 interface Props {
   navigation: UsernameScreenNavigationProp;
+  route: UsernameScreenRouteProp;
 }
 
-export default function UsernameScreen({ navigation }: Props) {
+export default function UsernameScreen({ navigation, route }: Props) {
   const [displayName, setDisplayName] = useState('');
-  const { user } = useAuth();
+  const { signIn } = useAuth();
+  const username = route.params.username;
 
   const handleComplete = async () => {
-    if (!user) {
-      Alert.alert('Error', 'No user found');
-      return;
-    }
-
     try {
-      // Update profile with display name
+      // First sign in the user
+      await signIn(username);
+      
+      // Then get the current user to update display name if provided
       if (displayName.trim()) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ display_name: displayName.trim() })
-          .eq('id', user.id);
-        
-        if (error) throw error;
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ display_name: displayName.trim() })
+            .eq('id', currentUser.id);
+          
+          if (error) throw error;
+        }
       }
       
       // Navigation will automatically switch to authenticated stack
-      // since user is already set in auth context
+      // since user is now signed in via auth context
     } catch (error) {
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      Alert.alert('Error', 'Failed to complete setup. Please try again.');
     }
   };
 
@@ -55,7 +61,7 @@ export default function UsernameScreen({ navigation }: Props) {
         </Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Your username: @{user?.username}</Text>
+          <Text style={styles.label}>Your username: @{username}</Text>
           <Text style={styles.hint}>
             This is your unique identifier
           </Text>
@@ -73,9 +79,8 @@ export default function UsernameScreen({ navigation }: Props) {
         </View>
 
         <TouchableOpacity
-          style={[styles.completeButton, !user && styles.disabledButton]}
+          style={styles.completeButton}
           onPress={handleComplete}
-          disabled={!user}
         >
           <Text style={styles.completeText}>Complete Setup</Text>
         </TouchableOpacity>
