@@ -89,10 +89,10 @@ export default function MediaPreviewScreen() {
           {
             text: 'OK',
             onPress: () => {
-              // Navigate to home/inbox to see the snap
+              // Navigate back to main tabs
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'Home' }],
+                routes: [{ name: 'MainTabs' }],
               });
             }
           }

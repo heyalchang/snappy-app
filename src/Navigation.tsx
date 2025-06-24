@@ -1,6 +1,8 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from './contexts/AuthContext';
 
 // Import screens
@@ -16,17 +18,91 @@ import { FriendsScreen, ChatScreen, StoriesScreen } from './screens/PlaceholderS
 export type RootStackParamList = {
   Auth: undefined;
   Username: { username: string };
-  Home: undefined;
+  MainTabs: undefined;
   Camera: undefined;
   SnapPreview: { mediaUri: string; mediaType: 'photo' | 'video' };
-  SnapInbox: undefined;
   SnapView: { snapId: string };
-  Friends: undefined;
   Chat: { friendId: string };
+};
+
+export type MainTabParamList = {
+  Home: undefined;
   Stories: undefined;
+  SnapInbox: undefined;
+  Friends: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#000',
+          borderTopWidth: 0,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: '#FFFC00',
+        tabBarInactiveTintColor: '#666',
+      }}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color }) => (
+            <TabIcon emoji="🏠" color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Stories" 
+        component={StoriesScreen}
+        options={{
+          tabBarLabel: 'Stories',
+          tabBarIcon: ({ color }) => (
+            <TabIcon emoji="📖" color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="SnapInbox" 
+        component={SnapInboxScreen}
+        options={{
+          tabBarLabel: 'Snaps',
+          tabBarIcon: ({ color }) => (
+            <TabIcon emoji="📬" color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Friends" 
+        component={FriendsScreen}
+        options={{
+          tabBarLabel: 'Friends',
+          tabBarIcon: ({ color }) => (
+            <TabIcon emoji="👥" color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Simple emoji icon component
+function TabIcon({ emoji, color }: { emoji: string; color: string }) {
+  return (
+    <Text style={{ fontSize: 24, opacity: color === '#666' ? 0.6 : 1 }}>
+      {emoji}
+    </Text>
+  );
+}
 
 export default function Navigation() {
   const { user, loading } = useAuth();
@@ -46,14 +122,11 @@ export default function Navigation() {
           </>
         ) : (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="Camera" component={CameraScreen} />
             <Stack.Screen name="SnapPreview" component={MediaPreviewScreen} />
-            <Stack.Screen name="SnapInbox" component={SnapInboxScreen} />
             <Stack.Screen name="SnapView" component={SnapViewScreen} />
-            <Stack.Screen name="Friends" component={FriendsScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
-            <Stack.Screen name="Stories" component={StoriesScreen} />
           </>
         )}
       </Stack.Navigator>
