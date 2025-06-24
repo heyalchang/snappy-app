@@ -6,18 +6,30 @@ export interface Database {
           id: string;
           username: string;
           avatar_url: string | null;
+          snap_score: number | null;
+          avatar_emoji: string | null;
+          avatar_color: string | null;
+          display_name: string | null;
           created_at: string | null;
         };
         Insert: {
           id: string;
           username: string;
           avatar_url?: string | null;
+          snap_score?: number | null;
+          avatar_emoji?: string | null;
+          avatar_color?: string | null;
+          display_name?: string | null;
           created_at?: string | null;
         };
         Update: {
           id?: string;
           username?: string;
           avatar_url?: string | null;
+          snap_score?: number | null;
+          avatar_emoji?: string | null;
+          avatar_color?: string | null;
+          display_name?: string | null;
           created_at?: string | null;
         };
       };

@@ -1,4 +1,10 @@
-  CREATE POLICY "Authenticated users can upload" ON storage.objects
+-- Create media bucket if it doesn't exist (public bucket for easy access)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create storage policies for media bucket
+CREATE POLICY "Authenticated users can upload" ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'media');
 

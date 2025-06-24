@@ -1,65 +1,90 @@
 # Active Working Document
 
-## Week 3 Goal: Auth Refactor + Snap Storage & Viewing
-First refactor auth to fix Firebase issues, then continue with snap storage implementation.
+## Current Phase: Phase 5 - Data Storage & Content Management
+**Week 5 (Dec 24-31, 2024)**
+
+### Week 5 Goals
+1. [x] Migrate from Firebase to Supabase ✅
+2. [ ] Implement media upload functionality  
+3. [ ] Create story viewer with expiration
+4. [ ] Add basic snap viewer with auto-delete
 
 ### Core Principles
-- **Simplicity First**: Class project, use defaults, basic error handling
-- **Requirements Only**: Build ONLY what's in the PRD
-- **MVP Focus**: Working > Perfect
-- **Minimal Dependencies**: Only add packages when necessary
-- **Linear Check**: Previous week must have user acceptance sign-off ✅
+- **Keep it simple** - this is a class project
+- **Requirements only** - no extra features  
+- **Working > Perfect**
+- **Check Linear** for acceptance before moving to next phase
+- **Don't go Leroy Jenkins** - ask before major changes
+- **Keep Product Requirements and Technical Plan in mind**
 
 ## Progress Tracker
 
-### Track 0: Auth Refactor (Priority Fix)
-- [x] Remove Firebase Auth SDK completely
-- [x] Delete phone verification screens
-- [x] Update AuthScreen with username/password
-- [x] Create simpleAuth.ts service
-- [x] Create AuthContext for state management
-- [x] Update Navigation to use context
-- [x] Update all user.uid references to username
+### Track 1: Supabase Migration ✅
+- [x] Set up Supabase project
+- [x] Create database schema matching Firebase structure
+- [x] Migrate auth service to Supabase Auth
+- [x] Update all TypeScript types for Supabase
+- [x] Fix schema mismatches and consolidate SQL scripts
+- [x] Clean database reset with proper migrations
 
-### Track 1: Firebase Storage
-- [x] Add send button to MediaPreviewScreen
-- [x] Upload photos/videos to Firebase Storage
-- [x] Create snap documents in Firestore
-- [x] Show loading state during upload
-- [x] Navigate to home after successful send
+### Track 2: Media Upload (In Progress)
+- [ ] Update media.ts to use Supabase Storage
+- [ ] Test photo capture and upload flow
+- [ ] Test video capture and upload flow
+- [ ] Verify media URLs are accessible
 
-### Track 2: Snap Lifecycle
-- [x] Create snap inbox screen (view sent snaps)
-- [x] Send snap to self for testing
-- [x] View snap with tap-and-hold gesture
-- [x] Auto-delete snap after viewing
-- [ ] Implement 24-hour story expiration (Cloud Function)
+### Track 3: Story Implementation
+- [ ] Create story upload functionality
+- [ ] Implement 24-hour expiration logic
+- [ ] Build story viewer UI
+- [ ] Add story indicators on home screen
+
+### Track 4: Snap Viewer
+- [ ] Implement snap sending to friends
+- [ ] Create snap viewer with tap-and-hold
+- [ ] Auto-delete after viewing
+- [ ] Update view counts
+
+## Current Status
+
+### ✅ Completed Today
+- Fixed all schema mismatches between code and database
+- Consolidated duplicate SQL migration scripts
+- Removed all band-aid fixes and temporary solutions
+- Successfully dropped and recreated all tables
+- Applied clean migration scripts in order
+- Storage bucket 'media' configured with proper policies
+
+### 🔄 Next Steps
+1. Test user creation flow
+2. Test login flow  
+3. Test photo upload to Supabase Storage
+4. Update media.ts service for Supabase
 
 ### 📝 Notes
-- Week 2 signed off on December 23, 2024
-- Video recording bug resolved with workaround
-- Firebase Storage integration complete
-- Snap lifecycle working: capture → send → view → delete
-- Created HomeScreen as main navigation hub
-- All screens connected in Navigation.tsx
+- Database is now clean and consistent
+- All TypeScript types match database schema
+- Ready to proceed with testing core flows
+- Project ID: qjoszotrtdpneednzjor
 
-### 🐛 Issues Encountered
-- Firebase Auth runtime error "Component auth has not been registered yet"
-  - Root cause: Firebase Auth SDK initialization timing issues with React Native
-  - Solution: Removed Firebase Auth completely, implemented simple username/password auth
-  - Documented in Linear issue POT-18
+### 🐛 Known Issues
+- None currently - fresh start after database cleanup
 
-### 🎯 Exit Criteria (from Technical Plan)
-**Firebase Storage:**
-- [x] Media uploads successfully
-- [x] Snap metadata saved to Firestore
-- [x] Upload progress shown to user
+### 🎯 Exit Criteria (Phase 5)
+**Media Storage:**
+- [ ] Photos/videos upload to Supabase Storage
+- [ ] Media URLs accessible via public bucket
+- [ ] Upload progress shown to user
 
-**Snap Lifecycle:**
-- [x] Can send snap to self
-- [x] Snap disappears after viewing
-- [ ] Stories expire after 24 hours (Cloud Function needed)
-- [x] View count increments (viewedBy array)
+**Story Features:**
+- [ ] Stories visible for 24 hours
+- [ ] Story viewer shows all active stories
+- [ ] Stories auto-expire (Edge Function)
 
-### 🏁 MVP Milestone
-User can capture, send to self, and watch snap disappear
+**Snap Features:**
+- [ ] Snaps can be sent to friends
+- [ ] Snaps delete after viewing
+- [ ] View tracking works correctly
+
+### 🏁 Week 5 Milestone
+User can upload media, post stories that expire, and send disappearing snaps to friends

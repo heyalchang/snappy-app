@@ -10,6 +10,10 @@ create table public.profiles (
   id         uuid primary key references auth.users on delete cascade,
   username   text unique not null,
   avatar_url text,
+  snap_score integer default 0,
+  avatar_emoji text,
+  avatar_color text,
+  display_name text,
   created_at timestamptz default now()
 );
 

@@ -24,13 +24,12 @@ export default function UsernameScreen({ navigation }: Props) {
     try {
       // Update profile with display name
       if (displayName.trim()) {
-        // Note: profiles table doesn't have display_name field yet
-        // For now, we'll skip this update
-        // const { error } = await supabase
-        //   .from('profiles')
-        //   .update({ display_name: displayName.trim() })
-        //   .eq('id', user.id);
-        // if (error) throw error;
+        const { error } = await supabase
+          .from('profiles')
+          .update({ display_name: displayName.trim() })
+          .eq('id', user.id);
+        
+        if (error) throw error;
       }
       
       // Navigation will automatically switch to authenticated stack
