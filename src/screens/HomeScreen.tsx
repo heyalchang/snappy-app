@@ -14,10 +14,16 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Snappy</Text>
-        <TouchableOpacity onPress={signOut} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity 
+          style={styles.profileButton}
+          onPress={() => navigation.navigate('Profile')}
+        >
+          <View style={[styles.avatarCircle, { backgroundColor: user?.avatar_color || '#FFB6C1' }]}>
+            <Text style={styles.avatarEmoji}>{user?.avatar_emoji || '😎'}</Text>
+          </View>
         </TouchableOpacity>
+        <Text style={styles.title}>Snappy</Text>
+        <View style={{ width: 40 }} />
       </View>
       
       <View style={styles.content}>
@@ -60,12 +66,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
-  logoutButton: {
-    padding: 8,
+  profileButton: {
+    width: 40,
+    height: 40,
   },
-  logoutText: {
-    fontSize: 16,
-    color: '#000',
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarEmoji: {
+    fontSize: 20,
   },
   content: {
     flex: 1,

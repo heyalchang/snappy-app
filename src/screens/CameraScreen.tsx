@@ -4,8 +4,26 @@ import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation';
+import FilterCarousel from '../components/FilterCarousel';
+import { FilterType } from '../utils/filters';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
+
+// Get filter overlay style for visual feedback
+const getFilterOverlayStyle = (filter: FilterType): any => {
+  switch (filter) {
+    case 'blackwhite':
+      return { backgroundColor: 'rgba(0, 0, 0, 0.1)' };
+    case 'sepia':
+      return { backgroundColor: 'rgba(112, 66, 20, 0.15)' };
+    case 'vintage':
+      return { backgroundColor: 'rgba(150, 100, 50, 0.12)' };
+    case 'face':
+      return {};
+    default:
+      return {};
+  }
+};
 
 export default function CameraScreen() {
   const navigation = useNavigation<CameraScreenNavigationProp>();
@@ -14,6 +32,7 @@ export default function CameraScreen() {
   const [facing, setFacing] = useState<'front' | 'back'>('back');
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isRecording, setIsRecording] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
   const cameraRef = useRef<CameraView | null>(null);
   const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,7 +64,8 @@ export default function CameraScreen() {
       if (photo && photo.uri) {
         navigation.navigate('SnapPreview', { 
           mediaUri: photo.uri, 
-          mediaType: 'photo' 
+          mediaType: 'photo',
+          filterType: selectedFilter
         });
       }
     } catch (error) {
@@ -94,7 +114,8 @@ export default function CameraScreen() {
       if (video && video.uri) {
         navigation.navigate('SnapPreview', { 
           mediaUri: video.uri, 
-          mediaType: 'video' 
+          mediaType: 'video',
+          filterType: selectedFilter
         });
       }
     } catch (error: any) {
@@ -186,6 +207,11 @@ export default function CameraScreen() {
         ref={cameraRef}
       />
       
+      {/* Filter overlay for visual feedback */}
+      {selectedFilter !== 'none' && (
+        <View style={[styles.filterOverlay, getFilterOverlayStyle(selectedFilter)]} pointerEvents="none" />
+      )}
+      
       {/* Controls overlaid on top of camera */}
       <View style={styles.topControls}>
         <TouchableOpacity 
@@ -210,6 +236,11 @@ export default function CameraScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <FilterCarousel 
+        selectedFilter={selectedFilter}
+        onFilterSelect={setSelectedFilter}
+      />
 
       <View style={styles.bottomControls}>
         <TouchableOpacity 
@@ -369,5 +400,12 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  filterOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

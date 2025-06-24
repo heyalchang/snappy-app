@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -19,6 +19,8 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
 import { sendSnapToSelf } from '../services/media';
 import { useAuth } from '../contexts/AuthContext';
+import { ColorMatrix } from 'react-native-color-matrix-image-filters';
+import { getFilterMatrix, FilterType } from '../utils/filters';
 
 type MediaPreviewScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SnapPreview'>;
 type MediaPreviewScreenRouteProp = RouteProp<RootStackParamList, 'SnapPreview'>;

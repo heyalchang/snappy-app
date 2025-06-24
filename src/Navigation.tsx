@@ -13,16 +13,25 @@ import CameraScreen from './screens/CameraScreen';
 import MediaPreviewScreen from './screens/MediaPreviewScreen';
 import SnapInboxScreen from './screens/SnapInboxScreen';
 import SnapViewScreen from './screens/SnapViewScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import AddFriendScreen from './screens/AddFriendScreen';
+import FriendsListScreen from './screens/FriendsListScreen';
 import { FriendsScreen, ChatScreen, StoriesScreen } from './screens/PlaceholderScreens';
+import { FilterType } from './utils/filters';
+
+export type MainStackParamList = RootStackParamList;
 
 export type RootStackParamList = {
   Auth: undefined;
   Username: { username: string };
   MainTabs: undefined;
   Camera: undefined;
-  SnapPreview: { mediaUri: string; mediaType: 'photo' | 'video' };
+  SnapPreview: { mediaUri: string; mediaType: 'photo' | 'video'; filterType?: FilterType };
   SnapView: { snapId: string };
   Chat: { friendId: string };
+  Profile: undefined;
+  AddFriend: undefined;
+  Friends: undefined;
 };
 
 export type MainTabParamList = {
@@ -127,6 +136,9 @@ export default function Navigation() {
             <Stack.Screen name="SnapPreview" component={MediaPreviewScreen} />
             <Stack.Screen name="SnapView" component={SnapViewScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="AddFriend" component={AddFriendScreen} />
+            <Stack.Screen name="Friends" component={FriendsListScreen} />
           </>
         )}
       </Stack.Navigator>
