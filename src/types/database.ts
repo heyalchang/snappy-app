@@ -85,50 +85,75 @@ export interface Database {
       posts: {
         Row: {
           id: string;
-          user_id: string;
-          media_url: string;
-          media_type: 'photo' | 'video';
+          author_id: string | null;
+          media_url: string | null;
+          media_type: string | null;
           caption: string | null;
-          created_at: string;
-          expires_at: string | null;
+          created_at: string | null;
         };
         Insert: {
           id?: string;
-          user_id: string;
-          media_url: string;
-          media_type: 'photo' | 'video';
+          author_id?: string | null;
+          media_url?: string | null;
+          media_type?: string | null;
           caption?: string | null;
-          created_at?: string;
-          expires_at?: string | null;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
-          user_id?: string;
-          media_url?: string;
-          media_type?: 'photo' | 'video';
+          author_id?: string | null;
+          media_url?: string | null;
+          media_type?: string | null;
           caption?: string | null;
-          created_at?: string;
-          expires_at?: string | null;
+          created_at?: string | null;
         };
       };
-      post_viewers: {
+      post_recipients: {
+        Row: {
+          post_id: string;
+          recipient_id: string;
+        };
+        Insert: {
+          post_id: string;
+          recipient_id: string;
+        };
+        Update: {
+          post_id?: string;
+          recipient_id?: string;
+        };
+      };
+      groups: {
         Row: {
           id: string;
-          post_id: string;
-          viewer_id: string;
-          viewed_at: string;
+          owner_id: string | null;
+          name: string;
+          created_at: string | null;
         };
         Insert: {
           id?: string;
-          post_id: string;
-          viewer_id: string;
-          viewed_at?: string;
+          owner_id?: string | null;
+          name: string;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
-          post_id?: string;
-          viewer_id?: string;
-          viewed_at?: string;
+          owner_id?: string | null;
+          name?: string;
+          created_at?: string | null;
+        };
+      };
+      group_members: {
+        Row: {
+          group_id: string;
+          member_id: string;
+        };
+        Insert: {
+          group_id: string;
+          member_id: string;
+        };
+        Update: {
+          group_id?: string;
+          member_id?: string;
         };
       };
       fake_profiles: {
@@ -161,23 +186,6 @@ export interface Database {
           has_story?: boolean | null;
           story_caption?: string | null;
           used?: boolean | null;
-        };
-      };
-      system_settings: {
-        Row: {
-          key: string;
-          value: string;
-          updated_at: string | null;
-        };
-        Insert: {
-          key: string;
-          value: string;
-          updated_at?: string | null;
-        };
-        Update: {
-          key?: string;
-          value?: string;
-          updated_at?: string | null;
         };
       };
     };

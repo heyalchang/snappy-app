@@ -124,7 +124,14 @@ interface Message {
 - Verify what fields actually exist vs what's assumed
 - Check for conflicts with other applications sharing the database
 
-## 3. Don't go Leroy Jenkins!
+## 3. TypeScript Database Definitions Must Stay in Sync
+**ALWAYS update src/types/database.ts when making database schema changes**
+- After any SQL migrations or schema changes, update the TypeScript definitions to match
+- The developer making schema changes is responsible for updating the types
+- Check actual database schema with SQL queries, then update types to match exactly (column names, nullable fields, etc.)
+- See DOCUMENTATION.md for detailed instructions on keeping types synchronized
+
+## 4. Don't go Leroy Jenkins!
 **Before making ANY significant reorganization, ASK FIRST. Over-ask.**
 - Don't reorganize files without permission
 - Don't restructure code without checking

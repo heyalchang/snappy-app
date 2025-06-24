@@ -3,6 +3,9 @@
 ## Overview
 This document explains the database schema changes made for V1.2 of the SnapClone project. The main goal was to simplify the architecture to match how Snapchat actually works.
 
+## Important: TypeScript Definitions
+When making any schema changes, you MUST update `src/types/database.ts` to match. See DOCUMENTATION.md for detailed instructions on keeping TypeScript definitions in sync with the database schema.
+
 ## Key Insight
 In Snapchat, there's no separate "snap inbox" - all photos, videos, and text messages appear in the same chat conversation. This simplification makes the app more intuitive and easier to implement.
 
