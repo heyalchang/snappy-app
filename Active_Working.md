@@ -26,12 +26,15 @@
 - [x] Update all TypeScript types for Supabase
 - [x] Fix schema mismatches and consolidate SQL scripts
 - [x] Clean database reset with proper migrations
+- [x] Remove all Firebase dependencies and references
 
-### Track 2: Media Upload (In Progress)
-- [ ] Update media.ts to use Supabase Storage
-- [ ] Test photo capture and upload flow
-- [ ] Test video capture and upload flow
-- [ ] Verify media URLs are accessible
+### Track 2: Media Upload ✅
+- [x] Update media.ts to use Supabase Storage
+- [x] Test photo capture and upload flow
+- [x] Test video capture and upload flow
+- [x] Verify media URLs are accessible
+- [x] Fix snap inbox to show sent snaps
+- [x] Fix snap viewing with tap-and-hold
 
 ### Track 3: Story Implementation
 - [ ] Create story upload functionality

@@ -1,11 +1,12 @@
-import { Timestamp } from 'firebase/firestore';
+// Legacy types - kept for reference but not actively used
+// The app now uses types from database.ts for Supabase integration
 
 export interface User {
   username: string;
   password: string; // For MVP only, would be hashed in production
   displayName?: string;
   profilePhotoUrl?: string;
-  createdAt: Timestamp;
+  createdAt: string; // ISO timestamp
   friends: string[]; // Array of usernames
 }
 
@@ -16,9 +17,9 @@ export interface Snap {
   mediaType: 'photo' | 'video';
   caption?: string;
   recipients: string[] | 'story'; // array of usernames or 'story'
-  createdAt: Timestamp;
-  expiresAt: Timestamp;
-  viewedBy: Array<{username: string; timestamp: Timestamp}>;
+  createdAt: string; // ISO timestamp
+  expiresAt: string; // ISO timestamp
+  viewedBy: Array<{username: string; timestamp: string}>;
 }
 
 export interface Message {
@@ -27,6 +28,6 @@ export interface Message {
   senderId: string; // username of sender
   type: 'text' | 'snap' | 'media';
   content: string;
-  sentAt: Timestamp;
-  readAt?: Timestamp;
+  sentAt: string; // ISO timestamp
+  readAt?: string; // ISO timestamp
 }
