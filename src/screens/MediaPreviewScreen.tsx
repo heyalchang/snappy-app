@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
 import { sendSnapToSelf } from '../services/media';
+import { useAuth } from '../contexts/AuthContext';
 
 type MediaPreviewScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SnapPreview'>;
 type MediaPreviewScreenRouteProp = RouteProp<RootStackParamList, 'SnapPreview'>;
@@ -26,6 +27,7 @@ export default function MediaPreviewScreen() {
   const navigation = useNavigation() as MediaPreviewScreenNavigationProp;
   const route = useRoute<MediaPreviewScreenRouteProp>();
   const { mediaUri, mediaType } = route.params;
+  const { username } = useAuth();
   const [caption, setCaption] = useState('');
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
@@ -62,6 +64,11 @@ export default function MediaPreviewScreen() {
 
   const sendSnap = async () => {
     try {
+      if (!username) {
+        Alert.alert('Error', 'No user logged in');
+        return;
+      }
+
       setSending(true);
       setUploadProgress(0);
 
@@ -69,6 +76,7 @@ export default function MediaPreviewScreen() {
         mediaUri,
         mediaType,
         caption,
+        username,
         (progress) => {
           setUploadProgress(progress);
         }

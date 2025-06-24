@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { User } from 'firebase/auth';
-import { subscribeToAuthChanges } from './services/auth';
+import { useAuth } from './contexts/AuthContext';
 
 // Import screens
 import AuthScreen from './screens/AuthScreen';
-import PhoneNumberScreen from './screens/PhoneNumberScreen';
-import VerifyCodeScreen from './screens/VerifyCodeScreen';
 import UsernameScreen from './screens/UsernameScreen';
 import HomeScreen from './screens/HomeScreen';
 import CameraScreen from './screens/CameraScreen';
@@ -18,8 +15,6 @@ import { FriendsScreen, ChatScreen, StoriesScreen } from './screens/PlaceholderS
 
 export type RootStackParamList = {
   Auth: undefined;
-  PhoneNumber: undefined;
-  VerifyCode: { phoneNumber: string };
   Username: undefined;
   Home: undefined;
   Camera: undefined;
@@ -34,26 +29,8 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function Navigation() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToAuthChanges((user) => {
-      setUser(user);
-      if (loading) {
-        setLoading(false);
-      }
-    });
-
-    return unsubscribe; // Unsubscribe on unmount
-  }, []);
-
-  if (loading) {
-    // Return null or a loading spinner while checking auth state
-    return null;
-  }
-  
-  const isAuthenticated = !!user;
+  const { username } = useAuth();
+  const isAuthenticated = !!username;
 
   return (
     <NavigationContainer>
@@ -61,8 +38,6 @@ export default function Navigation() {
         {!isAuthenticated ? (
           <>
             <Stack.Screen name="Auth" component={AuthScreen} />
-            <Stack.Screen name="PhoneNumber" component={PhoneNumberScreen} />
-            <Stack.Screen name="VerifyCode" component={VerifyCodeScreen} />
             <Stack.Screen name="Username" component={UsernameScreen} />
           </>
         ) : (

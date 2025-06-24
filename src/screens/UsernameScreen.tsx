@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
+import { updateProfile } from '../services/simpleAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 type UsernameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Username'>;
 
@@ -10,24 +12,25 @@ interface Props {
 }
 
 export default function UsernameScreen({ navigation }: Props) {
-  const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const { username } = useAuth();
 
   const handleComplete = async () => {
-    if (username.length < 3) {
-      Alert.alert('Invalid Username', 'Username must be at least 3 characters long');
+    if (!username) {
+      Alert.alert('Error', 'No username found');
       return;
     }
 
     try {
-      // TODO: Save user profile to Firebase
-      // For now, just navigate to camera
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Camera' }],
-      });
+      // Update profile with display name
+      if (displayName.trim()) {
+        await updateProfile(username, { displayName: displayName.trim() });
+      }
+      
+      // Navigation will automatically switch to authenticated stack
+      // since username is already set in auth context
     } catch (error) {
-      Alert.alert('Error', 'Failed to create profile. Please try again.');
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
     }
   };
 
@@ -47,18 +50,9 @@ export default function UsernameScreen({ navigation }: Props) {
         </Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Username</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="snapuser123"
-            value={username}
-            onChangeText={(text) => setUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={20}
-          />
+          <Text style={styles.label}>Your username: @{username}</Text>
           <Text style={styles.hint}>
-            Letters, numbers, and underscores only
+            This is your unique identifier
           </Text>
         </View>
 

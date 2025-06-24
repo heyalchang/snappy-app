@@ -1,5 +1,4 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth as getFirebaseAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage as getFirebaseStorage, FirebaseStorage } from 'firebase/storage';
 
@@ -14,7 +13,6 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let auth: Auth | null = null;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 
@@ -29,14 +27,6 @@ if (!getApps().length) {
 } else {
   app = getApp();
 }
-
-// Lazy initialization for Auth service
-export const getAuth = (): Auth => {
-  if (!auth) {
-    auth = getFirebaseAuth(app);
-  }
-  return auth;
-};
 
 // Lazy initialization for Firestore service
 export const getDb = (): Firestore => {

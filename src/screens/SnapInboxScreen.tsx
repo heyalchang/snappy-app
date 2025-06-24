@@ -11,9 +11,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
-import { getAuth, getDb } from '../services/firebase';
+import { getDb } from '../services/firebase';
 import { Snap } from '../types';
 import { RootStackParamList } from '../Navigation';
+import { useAuth } from '../contexts/AuthContext';
 
 type SnapInboxNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SnapInbox'>;
 
@@ -23,16 +24,15 @@ interface SnapWithId extends Snap {
 
 export default function SnapInboxScreen() {
   const navigation = useNavigation<SnapInboxNavigationProp>();
+  const { username } = useAuth();
   const [snaps, setSnaps] = useState<SnapWithId[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadSnaps = () => {
-    const auth = getAuth();
     const db = getDb();
-    const userId = auth.currentUser?.uid;
 
-    if (!userId) {
+    if (!username) {
       setLoading(false);
       return;
     }
@@ -40,7 +40,7 @@ export default function SnapInboxScreen() {
     // Query for snaps where user is in recipients and snap hasn't expired
     const snapsQuery = query(
       collection(db, 'snaps'),
-      where('recipients', 'array-contains', userId),
+      where('recipients', 'array-contains', username),
       where('expiresAt', '>', Timestamp.now()),
       orderBy('createdAt', 'desc')
     );

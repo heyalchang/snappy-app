@@ -13,13 +13,13 @@ First refactor auth to fix Firebase issues, then continue with snap storage impl
 ## Progress Tracker
 
 ### Track 0: Auth Refactor (Priority Fix)
-- [ ] Remove Firebase Auth SDK completely
-- [ ] Delete phone verification screens
-- [ ] Update AuthScreen with username/password
-- [ ] Create simpleAuth.ts service
-- [ ] Create AuthContext for state management
-- [ ] Update Navigation to use context
-- [ ] Update all user.uid references to username
+- [x] Remove Firebase Auth SDK completely
+- [x] Delete phone verification screens
+- [x] Update AuthScreen with username/password
+- [x] Create simpleAuth.ts service
+- [x] Create AuthContext for state management
+- [x] Update Navigation to use context
+- [x] Update all user.uid references to username
 
 ### Track 1: Firebase Storage
 - [x] Add send button to MediaPreviewScreen
@@ -44,7 +44,10 @@ First refactor auth to fix Firebase issues, then continue with snap storage impl
 - All screens connected in Navigation.tsx
 
 ### 🐛 Issues Encountered
-- None - smooth implementation!
+- Firebase Auth runtime error "Component auth has not been registered yet"
+  - Root cause: Firebase Auth SDK initialization timing issues with React Native
+  - Solution: Removed Firebase Auth completely, implemented simple username/password auth
+  - Documented in Linear issue POT-18
 
 ### 🎯 Exit Criteria (from Technical Plan)
 **Firebase Storage:**

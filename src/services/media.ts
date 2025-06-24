@@ -1,6 +1,6 @@
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { collection, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { getAuth, getDb, getStorage } from './firebase';
+import { getDb, getStorage } from './firebase';
 import { Snap } from '../types';
 
 interface UploadProgress {
@@ -11,6 +11,7 @@ interface UploadProgress {
 export const uploadMedia = async (
   uri: string,
   mediaType: 'photo' | 'video',
+  username: string,
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   try {
@@ -20,11 +21,9 @@ export const uploadMedia = async (
 
     // Create storage reference
     const timestamp = Date.now();
-    const auth = getAuth();
     const storage = getStorage();
-    const userId = auth.currentUser?.uid || 'anonymous';
     const extension = mediaType === 'photo' ? 'jpg' : 'mp4';
-    const filename = `${userId}_${timestamp}.${extension}`;
+    const filename = `${username}_${timestamp}.${extension}`;
     const storageRef = ref(storage, `snaps/${filename}`);
 
     // Create upload task
@@ -66,19 +65,17 @@ export const createSnap = async (
   mediaUrl: string,
   mediaType: 'photo' | 'video',
   caption: string,
-  recipients: string[] | 'story'
+  recipients: string[] | 'story',
+  username: string
 ): Promise<string> => {
   try {
-    const auth = getAuth();
     const db = getDb();
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error('User not authenticated');
 
     // Create snap document
     const snapRef = doc(collection(db, 'snaps'));
     const snapData = {
       snapId: snapRef.id,
-      creatorId: userId,
+      creatorId: username,
       mediaUrl,
       mediaType,
       caption: caption || '',
@@ -102,20 +99,15 @@ export const sendSnapToSelf = async (
   mediaUri: string,
   mediaType: 'photo' | 'video',
   caption: string,
+  username: string,
   onProgress?: (progress: number) => void
 ): Promise<void> => {
   try {
-    const auth = getAuth();
-    console.log('Auth object:', auth);
-    console.log('Current user:', auth.currentUser);
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error('User not authenticated');
-
     // Upload media to Firebase Storage
-    const mediaUrl = await uploadMedia(mediaUri, mediaType, onProgress);
+    const mediaUrl = await uploadMedia(mediaUri, mediaType, username, onProgress);
 
     // Create snap document (send to self for testing)
-    await createSnap(mediaUrl, mediaType, caption, [userId]);
+    await createSnap(mediaUrl, mediaType, caption, [username], username);
   } catch (error) {
     console.error('Send snap error:', error);
     throw error;
