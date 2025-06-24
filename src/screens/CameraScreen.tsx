@@ -190,9 +190,15 @@ export default function CameraScreen() {
       <View style={styles.topControls}>
         <TouchableOpacity 
           style={styles.controlButton}
-          onPress={() => navigation.navigate('Friends')}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('MainTabs');
+            }
+          }}
         >
-          <Text style={styles.controlIcon}>👤</Text>
+          <Text style={styles.controlIcon}>✕</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
