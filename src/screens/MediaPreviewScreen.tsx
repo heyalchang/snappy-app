@@ -27,7 +27,7 @@ export default function MediaPreviewScreen() {
   const navigation = useNavigation() as MediaPreviewScreenNavigationProp;
   const route = useRoute<MediaPreviewScreenRouteProp>();
   const { mediaUri, mediaType } = route.params;
-  const { username } = useAuth();
+  const { user } = useAuth();
   const [caption, setCaption] = useState('');
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
@@ -64,7 +64,7 @@ export default function MediaPreviewScreen() {
 
   const sendSnap = async () => {
     try {
-      if (!username) {
+      if (!user) {
         Alert.alert('Error', 'No user logged in');
         return;
       }
@@ -76,7 +76,7 @@ export default function MediaPreviewScreen() {
         mediaUri,
         mediaType,
         caption,
-        username,
+        user.username,
         (progress) => {
           setUploadProgress(progress);
         }

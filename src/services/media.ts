@@ -1,17 +1,10 @@
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { collection, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { getDb, getStorage } from './firebase';
-import { Snap } from '../types';
-
-interface UploadProgress {
-  progress: number;
-  snapshot?: any;
-}
+import { supabase } from './supabase';
+import { decode } from 'base64-arraybuffer';
 
 export const uploadMedia = async (
   uri: string,
   mediaType: 'photo' | 'video',
-  username: string,
+  userId: string,
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   try {
@@ -19,41 +12,47 @@ export const uploadMedia = async (
     const response = await fetch(uri);
     const blob = await response.blob();
 
-    // Create storage reference
-    const timestamp = Date.now();
-    const storage = getStorage();
-    const extension = mediaType === 'photo' ? 'jpg' : 'mp4';
-    const filename = `${username}_${timestamp}.${extension}`;
-    const storageRef = ref(storage, `snaps/${filename}`);
-
-    // Create upload task
-    const uploadTask = uploadBytesResumable(storageRef, blob);
-
-    // Return promise that resolves with download URL
+    // Convert blob to base64
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    
     return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          // Calculate progress
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          if (onProgress) {
-            onProgress(progress);
-          }
-        },
-        (error) => {
-          console.error('Upload error:', error);
+      reader.onloadend = async () => {
+        try {
+          const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1];
+
+          // Create filename
+          const timestamp = Date.now();
+          const extension = mediaType === 'photo' ? 'jpg' : 'mp4';
+          const filename = `${userId}_${timestamp}.${extension}`;
+          const filePath = `snaps/${filename}`;
+
+          // Upload to Supabase Storage
+          onProgress?.(50); // Simulate progress
+          
+          const { data, error } = await supabase.storage
+            .from('media')
+            .upload(filePath, decode(base64Data), {
+              contentType: mediaType === 'photo' ? 'image/jpeg' : 'video/mp4',
+              upsert: false
+            });
+
+          if (error) throw error;
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('media')
+            .getPublicUrl(filePath);
+
+          onProgress?.(100);
+          resolve(publicUrl);
+        } catch (error) {
           reject(error);
-        },
-        async () => {
-          // Upload completed successfully
-          try {
-            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(downloadUrl);
-          } catch (error) {
-            reject(error);
-          }
         }
-      );
+      };
+      
+      reader.onerror = () => reject(new Error('Failed to read file'));
     });
   } catch (error) {
     console.error('Media upload error:', error);
@@ -66,29 +65,49 @@ export const createSnap = async (
   mediaType: 'photo' | 'video',
   caption: string,
   recipients: string[] | 'story',
-  username: string
+  userId: string
 ): Promise<string> => {
   try {
-    const db = getDb();
+    // Create post in database
+    const { data: post, error: postError } = await supabase
+      .from('posts')
+      .insert({
+        author_id: userId,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        caption: caption || null
+      })
+      .select()
+      .single();
 
-    // Create snap document
-    const snapRef = doc(collection(db, 'snaps'));
-    const snapData = {
-      snapId: snapRef.id,
-      creatorId: username,
-      mediaUrl,
-      mediaType,
-      caption: caption || '',
-      recipients,
-      createdAt: serverTimestamp(),
-      expiresAt: recipients === 'story' 
-        ? Timestamp.fromDate(new Date(Date.now() + 24 * 60 * 60 * 1000)) // 24 hours
-        : Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days for direct snaps
-      viewedBy: []
-    };
+    if (postError) throw postError;
 
-    await setDoc(snapRef, snapData);
-    return snapRef.id;
+    // If sending to specific recipients (not story)
+    if (recipients !== 'story' && Array.isArray(recipients)) {
+      // Get recipient IDs from usernames
+      const { data: recipientProfiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('username', recipients);
+
+      if (profileError) throw profileError;
+
+      // Create recipient entries
+      const recipientEntries = recipientProfiles.map(profile => ({
+        post_id: post.id,
+        recipient_id: profile.id
+      }));
+
+      if (recipientEntries.length > 0) {
+        const { error: recipientError } = await supabase
+          .from('post_recipients')
+          .insert(recipientEntries);
+
+        if (recipientError) throw recipientError;
+      }
+    }
+
+    return post.id;
   } catch (error) {
     console.error('Create snap error:', error);
     throw error;
@@ -103,11 +122,15 @@ export const sendSnapToSelf = async (
   onProgress?: (progress: number) => void
 ): Promise<void> => {
   try {
-    // Upload media to Firebase Storage
-    const mediaUrl = await uploadMedia(mediaUri, mediaType, username, onProgress);
+    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user');
+
+    // Upload media to Supabase Storage
+    const mediaUrl = await uploadMedia(mediaUri, mediaType, user.id, onProgress);
 
     // Create snap document (send to self for testing)
-    await createSnap(mediaUrl, mediaType, caption, [username], username);
+    await createSnap(mediaUrl, mediaType, caption, [username], user.id);
   } catch (error) {
     console.error('Send snap error:', error);
     throw error;
