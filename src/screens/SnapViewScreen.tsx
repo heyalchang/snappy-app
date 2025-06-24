@@ -12,21 +12,29 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { doc, getDoc, updateDoc, arrayUnion, Timestamp, deleteDoc } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
-import { getAuth, getDb, getStorage } from '../services/firebase';
-import { Snap } from '../types';
+import { supabase } from '../services/supabase';
 import { RootStackParamList } from '../Navigation';
+import { useAuth } from '../contexts/AuthContext';
 
 type SnapViewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SnapView'>;
 type SnapViewRouteProp = RouteProp<RootStackParamList, 'SnapView'>;
+
+interface SnapPost {
+  id: string;
+  author_id: string;
+  media_url: string;
+  media_type: 'photo' | 'video';
+  caption: string | null;
+  created_at: string;
+}
 
 export default function SnapViewScreen() {
   const navigation = useNavigation<SnapViewNavigationProp>();
   const route = useRoute<SnapViewRouteProp>();
   const { snapId } = route.params;
+  const { user } = useAuth();
   
-  const [snap, setSnap] = useState<Snap | null>(null);
+  const [snap, setSnap] = useState<SnapPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [isViewing, setIsViewing] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -34,8 +42,8 @@ export default function SnapViewScreen() {
   const viewStartTime = useRef<number>(0);
 
   // Initialize video player
-  const player = useVideoPlayer(snap?.mediaType === 'video' ? snap.mediaUrl : null, player => {
-    if (snap?.mediaType === 'video') {
+  const player = useVideoPlayer(snap?.media_type === 'video' ? snap.media_url : null, player => {
+    if (snap?.media_type === 'video') {
       player.loop = false;
       player.play();
     }
@@ -52,17 +60,19 @@ export default function SnapViewScreen() {
 
   const loadSnap = async () => {
     try {
-      const db = getDb();
-      const snapDoc = await getDoc(doc(db, 'snaps', snapId));
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', snapId)
+        .single();
       
-      if (!snapDoc.exists()) {
+      if (error || !data) {
         Alert.alert('Error', 'Snap not found');
         navigation.goBack();
         return;
       }
 
-      const snapData = snapDoc.data() as Snap;
-      setSnap(snapData);
+      setSnap(data);
       setLoading(false);
     } catch (error) {
       console.error('Error loading snap:', error);
@@ -77,11 +87,8 @@ export default function SnapViewScreen() {
     setIsViewing(true);
     viewStartTime.current = Date.now();
     
-    // Mark as viewed
-    await markAsViewed();
-    
     // Start countdown (10 seconds max for photos, video duration for videos)
-    const duration = snap.mediaType === 'photo' ? 10 : 10; // Both limited to 10s
+    const duration = snap.media_type === 'photo' ? 10 : 10; // Both limited to 10s
     setCountdown(duration);
     
     countdownInterval.current = setInterval(() => {
@@ -93,25 +100,6 @@ export default function SnapViewScreen() {
         return prev - 1;
       });
     }, 1000);
-  };
-
-  const markAsViewed = async () => {
-    try {
-      const auth = getAuth();
-      const db = getDb();
-      const userId = auth.currentUser?.uid;
-      
-      if (!userId) return;
-
-      await updateDoc(doc(db, 'snaps', snapId), {
-        viewedBy: arrayUnion({
-          uid: userId,
-          timestamp: Timestamp.now()
-        })
-      });
-    } catch (error) {
-      console.error('Error marking as viewed:', error);
-    }
   };
 
   const endViewing = async () => {
@@ -131,29 +119,44 @@ export default function SnapViewScreen() {
   };
 
   const deleteSnap = async () => {
-    if (!snap) return;
+    if (!snap || !user) return;
     
     try {
-      const db = getDb();
-      const storage = getStorage();
-      const auth = getAuth();
-      const userId = auth.currentUser?.uid;
-      
-      // Only delete if user has viewed it (for self-sent snaps)
-      const isViewed = snap.viewedBy.some(view => view.uid === userId);
-      if (!isViewed) return;
-      
-      // Delete from Storage
-      try {
-        const storageRef = ref(storage, snap.mediaUrl);
-        await deleteObject(storageRef);
-      } catch (error) {
-        console.error('Error deleting media:', error);
-        // Continue even if storage deletion fails
+      // Delete the post recipient entry (removes from inbox)
+      const { error: recipientError } = await supabase
+        .from('post_recipients')
+        .delete()
+        .eq('post_id', snap.id)
+        .eq('recipient_id', user.id);
+
+      if (recipientError) {
+        console.error('Error deleting recipient:', recipientError);
       }
-      
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'snaps', snapId));
+
+      // For self-sent snaps, also delete the post and media
+      if (snap.author_id === user.id) {
+        // Delete from storage
+        const mediaPath = snap.media_url.split('/').pop();
+        if (mediaPath) {
+          const { error: storageError } = await supabase.storage
+            .from('media')
+            .remove([`snaps/${mediaPath}`]);
+          
+          if (storageError) {
+            console.error('Error deleting media:', storageError);
+          }
+        }
+
+        // Delete the post
+        const { error: postError } = await supabase
+          .from('posts')
+          .delete()
+          .eq('id', snap.id);
+
+        if (postError) {
+          console.error('Error deleting post:', postError);
+        }
+      }
     } catch (error) {
       console.error('Error deleting snap:', error);
     }
@@ -182,13 +185,13 @@ export default function SnapViewScreen() {
             <Text style={styles.emoji}>👆</Text>
             <Text style={styles.instruction}>Tap and hold to view</Text>
             <Text style={styles.subInstruction}>
-              {snap.mediaType === 'photo' ? 'Photo' : 'Video'} from Me
+              {snap.media_type === 'photo' ? 'Photo' : 'Video'} from Me
             </Text>
           </View>
         ) : (
           <>
-            {snap.mediaType === 'photo' ? (
-              <Image source={{ uri: snap.mediaUrl }} style={styles.media} />
+            {snap.media_type === 'photo' ? (
+              <Image source={{ uri: snap.media_url }} style={styles.media} />
             ) : (
               <VideoView
                 style={styles.media}
