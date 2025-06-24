@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const DEFAULT_PASSWORD = 'snapclone123!';
+const DEFAULT_PASSWORD = 'qwerty';
 
 export interface AuthUser {
   id: string;
