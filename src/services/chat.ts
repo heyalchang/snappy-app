@@ -98,15 +98,21 @@ export async function sendTextMessage(
   recipientId: string,
   content: string
 ): Promise<Message> {
+  console.log('sendTextMessage called with:', { roomId, senderId, recipientId, content });
+  
+  const insertData = {
+    room_id: roomId,
+    sender_id: senderId,
+    recipient_id: recipientId,
+    content,
+    type: 'text',
+  };
+  
+  console.log('Attempting to insert:', insertData);
+  
   const { data, error } = await supabase
     .from('messages')
-    .insert({
-      room_id: roomId,
-      sender_id: senderId,
-      recipient_id: recipientId,
-      content,
-      type: 'text',
-    })
+    .insert(insertData)
     .select(`
       *,
       sender:profiles!sender_id (
@@ -117,7 +123,18 @@ export async function sendTextMessage(
     `)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase insert error:', {
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
+    throw error;
+  }
+  
+  console.log('Message sent successfully:', data);
   
   // Send auto-response from the friend
   sendAutoResponse(roomId, senderId, recipientId);

@@ -102,10 +102,22 @@ export default function ChatScreen() {
     setSending(true);
 
     try {
+      console.log('Sending message with params:', {
+        roomId,
+        senderId: user.id,
+        friendId,
+        message: trimmedMessage
+      });
       await sendTextMessage(roomId, user.id, friendId, trimmedMessage);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to send message');
+    } catch (error: any) {
+      console.error('Error sending message - Full details:', {
+        error,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code
+      });
+      Alert.alert('Error', `Failed to send message: ${error?.message || 'Unknown error'}`);
       setMessageText(trimmedMessage);
     } finally {
       setSending(false);
