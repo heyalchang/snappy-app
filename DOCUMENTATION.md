@@ -50,11 +50,6 @@ Key differences:
 
 ## Development Notes
 
-### Firebase Configuration
-- Using Firebase Web SDK (not react-native-firebase)
-- Lazy initialization pattern to avoid runtime errors
-- AsyncStorage for auth persistence
-
 ### Navigation Setup
 - React Navigation 6 with native stack navigator
 - Type-safe navigation using TypeScript
