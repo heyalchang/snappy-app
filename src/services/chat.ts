@@ -1,6 +1,35 @@
 import { supabase } from './supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
+// Array of generic auto-responses
+const AUTO_RESPONSES = [
+  "Hey! 👋",
+  "That's awesome!",
+  "Good to hear from you!",
+  "Cool! 😎",
+  "Nice!",
+  "Thanks for sharing!",
+  "Interesting...",
+  "LOL 😂",
+  "For real?",
+  "No way!",
+  "That's what's up",
+  "Bet",
+  "Facts",
+  "Love that for you",
+  "Mood",
+  "Same here",
+  "I feel you",
+  "Right?!",
+  "Totally agree",
+  "Miss you too!",
+  "Let's hang soon!",
+  "👍",
+  "❤️",
+  "🔥🔥🔥",
+  "Haha yeah"
+];
+
 export interface Message {
   id: number;
   room_id: string;
@@ -34,10 +63,39 @@ export function getRoomId(userId1: string, userId2: string): string {
   return `dm_${[userId1, userId2].sort().join('_')}`;
 }
 
+// Get a random auto-response
+function getRandomResponse(): string {
+  return AUTO_RESPONSES[Math.floor(Math.random() * AUTO_RESPONSES.length)];
+}
+
+// Send auto-response after a delay
+async function sendAutoResponse(roomId: string, senderId: string, recipientId: string) {
+  // Wait 1-3 seconds for more natural feeling
+  const delay = 1000 + Math.random() * 2000;
+  
+  setTimeout(async () => {
+    try {
+      const response = getRandomResponse();
+      await supabase
+        .from('messages')
+        .insert({
+          room_id: roomId,
+          sender_id: recipientId, // Friend sends the response
+          recipient_id: senderId, // Back to original sender
+          content: response,
+          type: 'text',
+        });
+    } catch (error) {
+      console.error('Error sending auto-response:', error);
+    }
+  }, delay);
+}
+
 // Send a text message
 export async function sendTextMessage(
   roomId: string,
   senderId: string,
+  recipientId: string,
   content: string
 ): Promise<Message> {
   const { data, error } = await supabase
@@ -45,6 +103,7 @@ export async function sendTextMessage(
     .insert({
       room_id: roomId,
       sender_id: senderId,
+      recipient_id: recipientId,
       content,
       type: 'text',
     })
@@ -59,6 +118,10 @@ export async function sendTextMessage(
     .single();
 
   if (error) throw error;
+  
+  // Send auto-response from the friend
+  sendAutoResponse(roomId, senderId, recipientId);
+  
   return data;
 }
 
@@ -66,6 +129,7 @@ export async function sendTextMessage(
 export async function sendMediaMessage(
   roomId: string,
   senderId: string,
+  recipientId: string,
   mediaUrl: string,
   mediaType: 'photo' | 'video',
   caption?: string
@@ -75,6 +139,7 @@ export async function sendMediaMessage(
     .insert({
       room_id: roomId,
       sender_id: senderId,
+      recipient_id: recipientId,
       content: caption || null,
       type: mediaType,
       media_url: mediaUrl,
@@ -90,6 +155,10 @@ export async function sendMediaMessage(
     .single();
 
   if (error) throw error;
+  
+  // Send auto-response from the friend
+  sendAutoResponse(roomId, senderId, recipientId);
+  
   return data;
 }
 
@@ -158,7 +227,7 @@ export async function getChatRooms(userId: string): Promise<ChatRoom[]> {
   if (otherUserIds.length > 0) {
     const { data: users } = await supabase
       .from('profiles')
-      .select('id, username')
+      .select('id, username, avatar_emoji, avatar_color')
       .in('id', otherUserIds);
     
     // Map user info to rooms
@@ -167,8 +236,8 @@ export async function getChatRooms(userId: string): Promise<ChatRoom[]> {
       if (room) {
         room.otherUser = {
           username: user.username,
-          avatar_emoji: null,
-          avatar_color: null,
+          avatar_emoji: user.avatar_emoji,
+          avatar_color: user.avatar_color,
         };
       }
     });

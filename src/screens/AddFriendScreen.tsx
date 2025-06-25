@@ -101,15 +101,14 @@ export default function AddFriendScreen({ navigation }: Props) {
       }
 
       // Check if friendship already exists
-      const { data: existingFriendship } = await supabase
+      const { data: existingFriendships } = await supabase
         .from('friendships')
         .select('*')
         .or(
           `and(user_id.eq.${user.id},friend_id.eq.${friendProfile.id}),and(user_id.eq.${friendProfile.id},friend_id.eq.${user.id})`
-        )
-        .single();
+        );
 
-      if (existingFriendship) {
+      if (existingFriendships && existingFriendships.length > 0) {
         Alert.alert('Info', 'You are already friends!');
         setUsername('');
         return;
@@ -141,7 +140,8 @@ export default function AddFriendScreen({ navigation }: Props) {
             text: 'OK',
             onPress: () => {
               setUsername('');
-              navigation.goBack();
+              // Don't navigate away, stay on the same screen
+              // This allows adding multiple friends
             },
           },
         ]

@@ -3,9 +3,9 @@ export type FilterType = 'none' | 'blackwhite' | 'sepia' | 'vintage' | 'face';
 // Filter matrix values for different effects
 export const filterMatrices = {
   blackwhite: [
-    0.299, 0.587, 0.114, 0, 0,
-    0.299, 0.587, 0.114, 0, 0,
-    0.299, 0.587, 0.114, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
     0, 0, 0, 1, 0
   ],
   sepia: [
@@ -15,9 +15,9 @@ export const filterMatrices = {
     0, 0, 0, 1, 0
   ],
   vintage: [
-    0.5, 0.5, 0.1, 0, 0.1,
-    0.4, 0.5, 0.1, 0, 0.1,
-    0.3, 0.4, 0.1, 0, 0.1,
+    0.9, 0.5, 0.1, 0, 0,
+    0.3, 0.8, 0.1, 0, 0,
+    0.2, 0.3, 0.5, 0, 0,
     0, 0, 0, 1, 0
   ]
 };

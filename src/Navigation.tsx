@@ -16,7 +16,10 @@ import SnapViewScreen from './screens/SnapViewScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import AddFriendScreen from './screens/AddFriendScreen';
 import FriendsListScreen from './screens/FriendsListScreen';
-import { FriendsScreen, ChatScreen, StoriesScreen } from './screens/PlaceholderScreens';
+import StoriesScreen from './screens/StoriesScreen';
+import StoryViewerScreen from './screens/StoryViewerScreen';
+import ChatListScreen from './screens/ChatListScreen';
+import ChatScreen from './screens/ChatScreen';
 import { FilterType } from './utils/filters';
 
 export type MainStackParamList = RootStackParamList;
@@ -26,17 +29,24 @@ export type RootStackParamList = {
   Username: { username: string };
   MainTabs: undefined;
   Camera: undefined;
-  SnapPreview: { mediaUri: string; mediaType: 'photo' | 'video'; filterType?: FilterType };
+  SnapPreview: { 
+    mediaUri: string; 
+    mediaType: 'photo' | 'video'; 
+    filterType?: FilterType;
+    chatContext?: { friendId: string; friendUsername: string };
+  };
   SnapView: { snapId: string };
-  Chat: { friendId: string };
+  Chat: { friendId: string; friendUsername: string };
   Profile: undefined;
   AddFriend: undefined;
   Friends: undefined;
+  StoryViewer: { userId: string; initialStoryIndex?: number };
 };
 
 export type MainTabParamList = {
   Home: undefined;
   Stories: undefined;
+  Chats: undefined;
   SnapInbox: undefined;
   Friends: undefined;
 };
@@ -81,6 +91,16 @@ function MainTabs() {
         }}
       />
       <Tab.Screen 
+        name="Chats" 
+        component={ChatListScreen}
+        options={{
+          tabBarLabel: 'Chats',
+          tabBarIcon: ({ color }) => (
+            <TabIcon emoji="💬" color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen 
         name="SnapInbox" 
         component={SnapInboxScreen}
         options={{
@@ -92,7 +112,7 @@ function MainTabs() {
       />
       <Tab.Screen 
         name="Friends" 
-        component={FriendsScreen}
+        component={FriendsListScreen}
         options={{
           tabBarLabel: 'Friends',
           tabBarIcon: ({ color }) => (
@@ -139,6 +159,7 @@ export default function Navigation() {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="AddFriend" component={AddFriendScreen} />
             <Stack.Screen name="Friends" component={FriendsListScreen} />
+            <Stack.Screen name="StoryViewer" component={StoryViewerScreen} />
           </>
         )}
       </Stack.Navigator>

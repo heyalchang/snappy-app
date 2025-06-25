@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation';
 import FilterCarousel from '../components/FilterCarousel';
@@ -27,6 +27,8 @@ const getFilterOverlayStyle = (filter: FilterType): any => {
 
 export default function CameraScreen() {
   const navigation = useNavigation<CameraScreenNavigationProp>();
+  const route = useRoute();
+  const chatContext = (route.params as any)?.chatContext;
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const [facing, setFacing] = useState<'front' | 'back'>('back');
@@ -35,6 +37,7 @@ export default function CameraScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
   const cameraRef = useRef<CameraView | null>(null);
   const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sunglassesAnimation = useRef(new Animated.Value(0)).current;
 
   // Clean up timeout on unmount
   useEffect(() => {
@@ -44,6 +47,20 @@ export default function CameraScreen() {
       }
     };
   }, []);
+
+  // Animate sunglasses when face filter is selected
+  useEffect(() => {
+    if (selectedFilter === 'face') {
+      Animated.spring(sunglassesAnimation, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      sunglassesAnimation.setValue(0);
+    }
+  }, [selectedFilter]);
 
   const flipCamera = () => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
@@ -65,7 +82,8 @@ export default function CameraScreen() {
         navigation.navigate('SnapPreview', { 
           mediaUri: photo.uri, 
           mediaType: 'photo',
-          filterType: selectedFilter
+          filterType: selectedFilter,
+          chatContext
         });
       }
     } catch (error) {
@@ -115,7 +133,8 @@ export default function CameraScreen() {
         navigation.navigate('SnapPreview', { 
           mediaUri: video.uri, 
           mediaType: 'video',
-          filterType: selectedFilter
+          filterType: selectedFilter,
+          chatContext
         });
       }
     } catch (error: any) {
@@ -208,8 +227,36 @@ export default function CameraScreen() {
       />
       
       {/* Filter overlay for visual feedback */}
-      {selectedFilter !== 'none' && (
+      {selectedFilter !== 'none' && selectedFilter !== 'face' && (
         <View style={[styles.filterOverlay, getFilterOverlayStyle(selectedFilter)]} pointerEvents="none" />
+      )}
+      
+      {/* Face filter overlay */}
+      {selectedFilter === 'face' && (
+        <View style={styles.faceFilterContainer} pointerEvents="none">
+          <Animated.View 
+            style={[
+              styles.sunglassesContainer,
+              {
+                transform: [
+                  { translateY: sunglassesAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-100, 0]
+                  })},
+                  { scale: sunglassesAnimation }
+                ],
+                opacity: sunglassesAnimation
+              }
+            ]}
+          >
+            <View style={styles.sunglassesFrame}>
+              <View style={styles.leftLens} />
+              <View style={styles.bridge} />
+              <View style={styles.rightLens} />
+            </View>
+          </Animated.View>
+          <Text style={styles.faceFilterHint}>Position sunglasses on your face</Text>
+        </View>
       )}
       
       {/* Controls overlaid on top of camera */}
@@ -407,5 +454,49 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  faceFilterContainer: {
+    position: 'absolute',
+    top: '30%',
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  sunglassesContainer: {
+    marginBottom: 20,
+  },
+  sunglassesFrame: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  leftLens: {
+    width: 70,
+    height: 60,
+    backgroundColor: '#000',
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#333',
+  },
+  bridge: {
+    width: 20,
+    height: 3,
+    backgroundColor: '#333',
+    marginHorizontal: -5,
+  },
+  rightLens: {
+    width: 70,
+    height: 60,
+    backgroundColor: '#000',
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#333',
+  },
+  faceFilterHint: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 15,
   },
 });

@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
 import { signIn, signUp } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
 
 type AuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Auth'>;
 
@@ -26,6 +27,49 @@ export default function AuthScreen({ navigation }: Props) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn: authSignIn } = useAuth();
+
+  const autoLogin = async (testUsername: string) => {
+    setIsLoading(true);
+    try {
+      await authSignIn(testUsername);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Auto-login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearFriends = async (testUsername: string) => {
+    try {
+      // Get user ID
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', testUsername)
+        .single();
+
+      if (userError || !user) {
+        Alert.alert('Error', 'User not found');
+        return;
+      }
+
+      // Delete all friendships
+      const { data: deletedFriendships, error: deleteError } = await supabase
+        .from('friendships')
+        .delete()
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .select();
+
+      if (deleteError) {
+        Alert.alert('Error', 'Failed to clear friends');
+        return;
+      }
+
+      Alert.alert('Success', `Cleared ${deletedFriendships?.length || 0} friendships for ${testUsername}`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to clear friends');
+    }
+  };
 
   const handleAuth = async () => {
     if (!username.trim()) {
@@ -96,6 +140,47 @@ export default function AuthScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
         </View>
+
+        {/* Developer Tools */}
+        <View style={styles.devToolsContainer}>
+          <Text style={styles.devToolsTitle}>Developer Tools</Text>
+          
+          <View style={styles.devToolRow}>
+            <Text style={styles.devUsername}>piratew</Text>
+            <TouchableOpacity 
+              style={styles.devButton}
+              onPress={() => autoLogin('piratew')}
+              disabled={isLoading}
+            >
+              <Text style={styles.devButtonText}>Auto Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.devButton}
+              onPress={() => clearFriends('piratew')}
+              disabled={isLoading}
+            >
+              <Text style={styles.devButtonText}>Clear Friends</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.devToolRow}>
+            <Text style={styles.devUsername}>schooloffish</Text>
+            <TouchableOpacity 
+              style={styles.devButton}
+              onPress={() => autoLogin('schooloffish')}
+              disabled={isLoading}
+            >
+              <Text style={styles.devButtonText}>Auto Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.devButton}
+              onPress={() => clearFriends('schooloffish')}
+              disabled={isLoading}
+            >
+              <Text style={styles.devButtonText}>Clear Friends</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -164,5 +249,45 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  devToolsContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  devToolsTitle: {
+    fontSize: 12,
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  devToolRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  devUsername: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  devButton: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  devButtonText: {
+    fontSize: 12,
+    color: '#000',
+    fontWeight: '500',
   },
 });

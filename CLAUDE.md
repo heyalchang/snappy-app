@@ -316,4 +316,8 @@ Add notes as appropriate.  This is a scratch pad for you.
 
 ## Hardcoding Rules
 - You must ask explicitly for signoff if hardcoding any results.
-```
+
+## Development Workflows
+
+### Workflow Memory
+- When you create an active_working.md file, if it's a new one, pick a name and add it to the end of the file to identify your file.  start working on track 3, stories.

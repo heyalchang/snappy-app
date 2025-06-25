@@ -57,29 +57,35 @@ export interface Database {
         Row: {
           id: number;
           sender_id: string | null;
+          recipient_id: string | null;
           room_id: string | null;
           content: string | null;
           created_at: string | null;
           type: string | null;
           media_url: string | null;
+          read_at: string | null;
         };
         Insert: {
           id?: number;
           sender_id?: string | null;
+          recipient_id?: string | null;
           room_id?: string | null;
           content?: string | null;
           created_at?: string | null;
           type?: string | null;
           media_url?: string | null;
+          read_at?: string | null;
         };
         Update: {
           id?: number;
           sender_id?: string | null;
+          recipient_id?: string | null;
           room_id?: string | null;
           content?: string | null;
           created_at?: string | null;
           type?: string | null;
           media_url?: string | null;
+          read_at?: string | null;
         };
       };
       posts: {

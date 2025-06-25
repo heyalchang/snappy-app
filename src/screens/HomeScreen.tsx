@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
@@ -10,6 +10,23 @@ type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTab
 export default function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   const { user, signOut } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -23,7 +40,12 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
         <Text style={styles.title}>Snappy</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity 
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          <Text style={styles.logoutIcon}>⚡</Text>
+        </TouchableOpacity>
       </View>
       
       <View style={styles.content}>
@@ -126,5 +148,23 @@ const styles = StyleSheet.create({
   },
   avatarInfo: {
     fontSize: 24,
+  },
+  logoutButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#000',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoutIcon: {
+    fontSize: 20,
+    color: '#FFFC00',
+    transform: [{ rotate: '90deg' }],
   },
 });

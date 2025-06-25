@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../Navigation';
@@ -56,17 +57,20 @@ export default function FriendsListScreen({ navigation }: Props) {
 
       if (error) throw error;
 
-      // Extract friend profiles
-      const friendProfiles: Friend[] = [];
+      // Extract friend profiles using Map to avoid duplicates
+      const friendMap = new Map<string, Friend>();
       friendships?.forEach((friendship) => {
         if (friendship.user_id === user.id && friendship.friend) {
-          friendProfiles.push(friendship.friend as Friend);
+          const friend = friendship.friend as Friend;
+          friendMap.set(friend.id, friend);
         } else if (friendship.friend_id === user.id && friendship.user) {
-          friendProfiles.push(friendship.user as Friend);
+          const friend = friendship.user as Friend;
+          friendMap.set(friend.id, friend);
         }
       });
 
-      // Sort by username
+      // Convert to array and sort by username
+      const friendProfiles = Array.from(friendMap.values());
       friendProfiles.sort((a, b) => a.username.localeCompare(b.username));
       
       setFriends(friendProfiles);
@@ -87,8 +91,10 @@ export default function FriendsListScreen({ navigation }: Props) {
     <TouchableOpacity
       style={styles.friendItem}
       onPress={() => {
-        // TODO: Navigate to chat with friend
-        console.log('Chat with:', item.username);
+        navigation.navigate('Chat', {
+          friendId: item.id,
+          friendUsername: item.username
+        });
       }}
     >
       <View style={styles.friendInfo}>
