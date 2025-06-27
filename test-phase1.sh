@@ -69,7 +69,7 @@ required_files=(
     "src/App.tsx"
     "src/Navigation.tsx"
     "src/types/index.ts"
-    "src/services/firebase.ts"
+    "src/services/supabase.ts"
     "src/services/auth.ts"
     "src/screens/AuthScreen.tsx"
     "src/screens/PhoneNumberScreen.tsx"
@@ -104,10 +104,10 @@ if [ -f "package.json" ]; then
         test_fail "React Navigation not found"
     fi
     
-    if echo "$deps" | grep -q "firebase"; then
-        test_pass "Firebase installed"
+    if echo "$deps" | grep -q "@supabase/supabase-js"; then
+        test_pass "Supabase installed"
     else
-        test_fail "Firebase not found"
+        test_fail "Supabase not found"
     fi
 else
     test_fail "package.json not found"

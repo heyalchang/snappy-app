@@ -14,7 +14,7 @@
 - **expo-media-library**: 17.1.7
 - **@react-navigation/native**: 7.1.14
 - **@react-navigation/native-stack**: 7.3.20
-- **firebase**: 11.9.1
+- **@supabase/supabase-js**: 2.47.21
 
 ## Important API Changes in SDK 53
 
