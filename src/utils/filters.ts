@@ -15,10 +15,10 @@ export const filterMatrices = {
     0, 0, 0, 1, 0
   ],
   vintage: [
-    0.9, 0.5, 0.1, 0, 0,
-    0.3, 0.8, 0.1, 0, 0,
-    0.2, 0.3, 0.5, 0, 0,
-    0, 0, 0, 1, 0
+    1.2, 0.2, 0.1, 0, 0.1,    // Strong red channel
+    0.2, 0.6, 0.1, 0, 0,      // Reduced green
+    0.1, 0.1, 0.5, 0, 0,      // Reduced blue
+    0, 0, 0, 1, 0             // Alpha unchanged
   ]
 };
 
@@ -51,7 +51,7 @@ export const getFilterPreviewStyle = (filterType: FilterType) => {
       };
     case 'vintage':
       return {
-        backgroundColor: 'rgba(150, 100, 50, 0.15)',
+        backgroundColor: 'rgba(200, 50, 50, 0.25)',
         mixBlendMode: 'multiply',
       };
     case 'face':

@@ -1,43 +1,116 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../Navigation';
+
+import { Surface } from 'gl-react-expo';
+import { Shaders, Node, GLSL } from 'gl-react';
+import 'webgltexture-loader-expo-camera';
 import FilterCarousel from '../components/FilterCarousel';
 import { FilterType } from '../utils/filters';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
 
-// Get filter overlay style for visual feedback
-const getFilterOverlayStyle = (filter: FilterType): any => {
-  switch (filter) {
-    case 'blackwhite':
-      return { backgroundColor: 'rgba(0, 0, 0, 0.1)' };
-    case 'sepia':
-      return { backgroundColor: 'rgba(112, 66, 20, 0.15)' };
-    case 'vintage':
-      return { backgroundColor: 'rgba(150, 100, 50, 0.12)' };
-    case 'face':
-      return {};
-    default:
-      return {};
+// Define GLSL shaders for each filter
+const shaders = Shaders.create({
+  none: {
+    frag: GLSL`
+      precision highp float;
+      varying vec2 uv;
+      uniform sampler2D tex;
+      void main() {
+        gl_FragColor = texture2D(tex, uv);
+      }`
+  },
+  blackwhite: {
+    frag: GLSL`
+      precision highp float;
+      varying vec2 uv;
+      uniform sampler2D tex;
+      void main() {
+        vec4 c = texture2D(tex, uv);
+        float gray = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        gl_FragColor = vec4(vec3(gray), c.a);
+      }`
+  },
+  sepia: {
+    frag: GLSL`
+      precision highp float;
+      varying vec2 uv;
+      uniform sampler2D tex;
+      void main() {
+        vec4 c = texture2D(tex, uv);
+        gl_FragColor = vec4(
+          dot(c.rgb, vec3(0.393, 0.769, 0.189)),
+          dot(c.rgb, vec3(0.349, 0.686, 0.168)),
+          dot(c.rgb, vec3(0.272, 0.534, 0.131)),
+          c.a
+        );
+      }`
+  },
+  vintage: {
+    frag: GLSL`
+      precision highp float;
+      varying vec2 uv;
+      uniform sampler2D tex;
+      void main() {
+        vec4 c = texture2D(tex, uv);
+        // VERY red vintage effect
+        float gray = dot(c.rgb, vec3(0.3, 0.6, 0.1));
+        c.r = gray * 1.8 + 0.2;
+        c.g = gray * 0.3;
+        c.b = gray * 0.2;
+        gl_FragColor = c;
+      }`
+  },
+  face: {
+    // Face filter will be handled with overlay
+    frag: GLSL`
+      precision highp float;
+      varying vec2 uv;
+      uniform sampler2D tex;
+      void main() {
+        gl_FragColor = texture2D(tex, uv);
+      }`
   }
-};
+});
 
 export default function CameraScreen() {
   const navigation = useNavigation<CameraScreenNavigationProp>();
   const route = useRoute();
   const chatContext = (route.params as any)?.chatContext;
+  
+  // Web fallback - camera not fully supported on web
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.permissionText}>Camera not supported on web</Text>
+        <Text style={styles.permissionSubtext}>
+          Please use the mobile app for camera features
+        </Text>
+        <TouchableOpacity
+          style={styles.grantButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.grantButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const [facing, setFacing] = useState<'front' | 'back'>('back');
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isRecording, setIsRecording] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
-  const cameraRef = useRef<CameraView | null>(null);
+  const surfaceRef = useRef<any>(null);
   const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const sunglassesAnimation = useRef(new Animated.Value(0)).current;
+  const [recordingUri, setRecordingUri] = useState<string | null>(null);
 
   // Clean up timeout on unmount
   useEffect(() => {
@@ -71,16 +144,16 @@ export default function CameraScreen() {
   };
 
   const takePicture = async () => {
-    if (!cameraRef.current || isRecording) return;
+    if (!surfaceRef.current || isRecording) return;
 
     try {
       console.log('Taking picture...');
-      const photo = await cameraRef.current.takePictureAsync();
-      console.log('Picture taken:', photo);
+      const result = await surfaceRef.current.capture();
+      console.log('Picture taken:', result);
       
-      if (photo && photo.uri) {
+      if (result && result.uri) {
         navigation.navigate('SnapPreview', { 
-          mediaUri: photo.uri, 
+          mediaUri: result.uri, 
           mediaType: 'photo',
           filterType: selectedFilter,
           chatContext
@@ -93,7 +166,7 @@ export default function CameraScreen() {
   };
 
   const startRecording = async () => {
-    if (!cameraRef.current || isRecording) return;
+    if (isRecording) return;
 
     // Check microphone permission
     if (!micPermission?.granted) {
@@ -101,65 +174,9 @@ export default function CameraScreen() {
       return;
     }
 
-    try {
-      console.log('Starting recording...');
-      setIsRecording(true);
-      
-      // Set a timeout to recover from stuck recordings
-      recordingTimeoutRef.current = setTimeout(() => {
-        console.log('Recording timeout - forcing stop');
-        // Force stop the recording to ensure promise resolves
-        if (cameraRef.current && isRecording) {
-          cameraRef.current.stopRecording();
-        }
-        setIsRecording(false);
-        Alert.alert('Recording Error', 'Recording timed out. Please try again.');
-      }, 15000); // 15 second timeout
-
-      const video = await cameraRef.current.recordAsync({
-        maxDuration: 10,
-      });
-      
-      // Clear timeout if recording completes normally
-      if (recordingTimeoutRef.current) {
-        clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = null;
-      }
-      
-      console.log('Recording completed:', video);
-      setIsRecording(false);
-      
-      if (video && video.uri) {
-        navigation.navigate('SnapPreview', { 
-          mediaUri: video.uri, 
-          mediaType: 'video',
-          filterType: selectedFilter,
-          chatContext
-        });
-      }
-    } catch (error: any) {
-      console.error('Recording error:', error);
-      
-      // Clear timeout on error
-      if (recordingTimeoutRef.current) {
-        clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = null;
-      }
-      
-      setIsRecording(false);
-      
-      // Don't show alert if user manually stopped recording
-      if (error.message !== 'Recording was stopped') {
-        Alert.alert('Recording Error', 'Failed to record video');
-      }
-    }
-  };
-
-  const stopRecording = () => {
-    console.log('Stopping recording...');
-    if (cameraRef.current && isRecording) {
-      cameraRef.current.stopRecording();
-    }
+    // GL-React doesn't support video recording directly
+    // For now, show a message
+    Alert.alert('Video Recording', 'Video recording is not yet supported with filters. Please use photo mode.');
   };
 
   const handleCapturePress = () => {
@@ -176,9 +193,6 @@ export default function CameraScreen() {
 
   const handleCaptureRelease = () => {
     console.log('Capture release, isRecording:', isRecording);
-    if (isRecording) {
-      stopRecording();
-    }
   };
 
   // Check if permissions are still loading
@@ -216,20 +230,18 @@ export default function CameraScreen() {
     );
   }
 
+  // Determine camera URI based on facing
+  const cameraUri = facing === 'back' ? 'camera://back' : 'camera://front';
+
   return (
     <View style={styles.container}>
-      <CameraView 
-        style={styles.camera} 
-        facing={facing}
-        flash={flash}
-        mode="video"
-        ref={cameraRef}
-      />
-      
-      {/* Filter overlay for visual feedback */}
-      {selectedFilter !== 'none' && selectedFilter !== 'face' && (
-        <View style={[styles.filterOverlay, getFilterOverlayStyle(selectedFilter)]} pointerEvents="none" />
-      )}
+      {/* GL Surface with real-time filtered camera */}
+      <Surface ref={surfaceRef} style={styles.camera}>
+        <Node 
+          shader={shaders[selectedFilter] || shaders.none} 
+          uniforms={{ tex: { uri: cameraUri } }} 
+        />
+      </Surface>
       
       {/* Face filter overlay */}
       {selectedFilter === 'face' && (
@@ -277,9 +289,10 @@ export default function CameraScreen() {
         <TouchableOpacity 
           style={styles.controlButton}
           onPress={toggleFlash}
+          disabled={flash === 'on'} // GL-React doesn't support flash
         >
-          <Text style={styles.controlIcon}>
-            {flash === 'on' ? '⚡' : '⚡̶'}
+          <Text style={[styles.controlIcon, { opacity: 0.3 }]}>
+            ⚡̶
           </Text>
         </TouchableOpacity>
       </View>
@@ -447,13 +460,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
-  },
-  filterOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   faceFilterContainer: {
     position: 'absolute',

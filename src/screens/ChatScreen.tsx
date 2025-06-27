@@ -46,9 +46,12 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (user) {
-      loadMessages();
-      markAsRead();
-      setupSubscription();
+      setLoading(true);
+      setMessages([]);
+      loadMessages().then(() => {
+        markAsRead();
+        setupSubscription();
+      });
     }
 
     return () => {
@@ -83,7 +86,12 @@ export default function ChatScreen() {
     if (!user) return;
 
     channelRef.current = subscribeToMessages(roomId, (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
+      setMessages((prev) => {
+        // Check if message already exists to avoid duplicates
+        const exists = prev.some(msg => msg.id === newMessage.id);
+        if (exists) return prev;
+        return [...prev, newMessage];
+      });
       if (newMessage.sender_id !== user.id) {
         markAsRead();
       }
@@ -108,7 +116,9 @@ export default function ChatScreen() {
         friendId,
         message: trimmedMessage
       });
-      await sendTextMessage(roomId, user.id, friendId, trimmedMessage);
+      const sentMessage = await sendTextMessage(roomId, user.id, friendId, trimmedMessage);
+      // Add the sent message to the chat immediately
+      setMessages((prev) => [...prev, sentMessage]);
     } catch (error: any) {
       console.error('Error sending message - Full details:', {
         error,

@@ -76,7 +76,9 @@ async function sendAutoResponse(roomId: string, senderId: string, recipientId: s
   setTimeout(async () => {
     try {
       const response = getRandomResponse();
-      await supabase
+      console.log('Sending auto-response:', { roomId, from: recipientId, to: senderId, message: response });
+      
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           room_id: roomId,
@@ -84,9 +86,17 @@ async function sendAutoResponse(roomId: string, senderId: string, recipientId: s
           recipient_id: senderId, // Back to original sender
           content: response,
           type: 'text',
-        });
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error sending auto-response:', error);
+      } else {
+        console.log('Auto-response sent successfully:', data);
+      }
     } catch (error) {
-      console.error('Error sending auto-response:', error);
+      console.error('Error in auto-response:', error);
     }
   }, delay);
 }
@@ -113,14 +123,7 @@ export async function sendTextMessage(
   const { data, error } = await supabase
     .from('messages')
     .insert(insertData)
-    .select(`
-      *,
-      sender:profiles!sender_id (
-        username,
-        avatar_emoji,
-        avatar_color
-      )
-    `)
+    .select()
     .single();
 
   if (error) {
@@ -136,10 +139,22 @@ export async function sendTextMessage(
   
   console.log('Message sent successfully:', data);
   
+  // Fetch sender profile separately
+  const { data: senderProfile } = await supabase
+    .from('profiles')
+    .select('username, avatar_emoji, avatar_color')
+    .eq('id', senderId)
+    .single();
+  
+  const messageWithSender = {
+    ...data,
+    sender: senderProfile
+  };
+  
   // Send auto-response from the friend
   sendAutoResponse(roomId, senderId, recipientId);
   
-  return data;
+  return messageWithSender;
 }
 
 // Send a media message (photo or video)
@@ -161,106 +176,98 @@ export async function sendMediaMessage(
       type: mediaType,
       media_url: mediaUrl,
     })
-    .select(`
-      *,
-      sender:profiles!sender_id (
-        username,
-        avatar_emoji,
-        avatar_color
-      )
-    `)
+    .select()
     .single();
 
   if (error) throw error;
   
+  // Fetch sender profile separately
+  const { data: senderProfile } = await supabase
+    .from('profiles')
+    .select('username, avatar_emoji, avatar_color')
+    .eq('id', senderId)
+    .single();
+  
+  const messageWithSender = {
+    ...data,
+    sender: senderProfile
+  };
+  
   // Send auto-response from the friend
   sendAutoResponse(roomId, senderId, recipientId);
   
-  return data;
+  return messageWithSender;
 }
 
 // Get messages for a room
 export async function getMessages(
   roomId: string,
-  limit = 50
+  cursor?: string, // ISO timestamp
+  limit = 20
 ): Promise<Message[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('messages')
-    .select(`
-      *,
-      sender:profiles!sender_id (
-        username,
-        avatar_emoji,
-        avatar_color
-      )
-    `)
+    .select('*')
     .eq('room_id', roomId)
     .order('created_at', { ascending: false })
     .limit(limit);
 
+  if (cursor) {
+    query = query.lt('created_at', cursor);
+  }
+
+  const { data: messages, error } = await query;
+
   if (error) throw error;
-  return data || [];
+  
+  // Fetch sender profiles for all messages
+  if (messages && messages.length > 0) {
+    const senderIds = [...new Set(messages.map(m => m.sender_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_emoji, avatar_color')
+      .in('id', senderIds);
+    
+    // Create a map for quick lookup
+    const profileMap = (profiles || []).reduce((acc, profile) => {
+      acc[profile.id] = profile;
+      return acc;
+    }, {});
+    
+    // Attach sender info to messages
+    const messagesWithSenders = messages.map(message => ({
+      ...message,
+      sender: profileMap[message.sender_id] || null
+    }));
+    
+    return messagesWithSenders;
+  }
+  
+  return [];
 }
 
 // Get chat rooms for a user
 export async function getChatRooms(userId: string): Promise<ChatRoom[]> {
-  // Get all messages where user is participant
-  const { data: messages, error } = await supabase
-    .from('messages')
-    .select(`
-      *,
-      sender:profiles!sender_id (
-        username,
-        avatar_emoji,
-        avatar_color
-      )
-    `)
-    .or(`room_id.like.%${userId}%`)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-
-  // Group messages by room and get latest
-  const roomsMap = new Map<string, ChatRoom>();
-  
-  messages?.forEach(message => {
-    if (!roomsMap.has(message.room_id)) {
-      // Extract other user ID from room ID
-      const userIds = message.room_id.replace('dm_', '').split('_');
-      const otherUserId = userIds.find(id => id !== userId) || '';
-      
-      roomsMap.set(message.room_id, {
-        roomId: message.room_id,
-        otherUserId,
-        lastMessage: message,
-      });
-    }
+  const { data, error } = await supabase.rpc('get_chat_rooms', {
+    p_user_id: userId,
   });
 
-  // Get other users' info
-  const rooms = Array.from(roomsMap.values());
-  const otherUserIds = rooms.map(room => room.otherUserId);
-  
-  if (otherUserIds.length > 0) {
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_emoji, avatar_color')
-      .in('id', otherUserIds);
-    
-    // Map user info to rooms
-    users?.forEach(user => {
-      const room = rooms.find(r => r.otherUserId === user.id);
-      if (room) {
-        room.otherUser = {
-          username: user.username,
-          avatar_emoji: user.avatar_emoji,
-          avatar_color: user.avatar_color,
-        };
-      }
-    });
+  if (error) {
+    console.error('Error fetching chat rooms:', error);
+    throw error;
   }
 
-  return rooms;
+  return data.map(room => ({
+    roomId: room.roomId,
+    otherUserId: room.otherUserId,
+    lastMessage: room.lastMessage as Message,
+    unreadCount: room.unreadCount,
+    otherUser: {
+      username: room.otherUser.username,
+      avatar_emoji: room.otherUser.avatar_emoji,
+      avatar_color: room.otherUser.avatar_color,
+    },
+  }));
 }
 
 // Mark messages as read
@@ -294,22 +301,27 @@ export function subscribeToMessages(
         filter: `room_id=eq.${roomId}`,
       },
       async (payload) => {
-        // Fetch complete message with sender info
-        const { data } = await supabase
+        // Fetch complete message
+        const { data: message } = await supabase
           .from('messages')
-          .select(`
-            *,
-            sender:profiles!sender_id (
-              username,
-              avatar_emoji,
-              avatar_color
-            )
-          `)
+          .select('*')
           .eq('id', payload.new.id)
           .single();
         
-        if (data) {
-          onMessage(data);
+        if (message) {
+          // Fetch sender profile separately
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('username, avatar_emoji, avatar_color')
+            .eq('id', message.sender_id)
+            .single();
+          
+          const messageWithSender = {
+            ...message,
+            sender: senderProfile
+          };
+          
+          onMessage(messageWithSender);
         }
       }
     )

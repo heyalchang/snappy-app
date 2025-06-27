@@ -21,8 +21,6 @@ import { sendSnapToSelf } from '../services/media';
 import * as FileSystem from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import { useAuth } from '../contexts/AuthContext';
-import { ColorMatrix } from 'react-native-color-matrix-image-filters';
-import { getFilterMatrix, FilterType, getFilterName } from '../utils/filters';
 import { supabase } from '../services/supabase';
 import { sendMediaMessage, getRoomId } from '../services/chat';
 
@@ -38,7 +36,6 @@ export default function MediaPreviewScreen() {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [processedUri, setProcessedUri] = useState(mediaUri);
   
   // Initialize video player for video playback
   const player = useVideoPlayer(mediaType === 'video' ? mediaUri : null, player => {
@@ -102,11 +99,6 @@ export default function MediaPreviewScreen() {
         .from('media')
         .getPublicUrl(filePath);
 
-      // Add filter info to caption if a filter is applied
-      const finalCaption = filterType && filterType !== 'none' 
-        ? `${caption}${caption ? ' ' : ''}[${getFilterName(filterType)} filter]`
-        : caption;
-      
       // Send as message in chat
       const roomId = getRoomId(user.id, chatContext.friendId);
       await sendMediaMessage(
@@ -115,26 +107,13 @@ export default function MediaPreviewScreen() {
         chatContext.friendId,
         publicUrl,
         mediaType,
-        finalCaption
+        caption
       );
       
       setUploadProgress(100);
 
-      Alert.alert(
-        'Sent!', 
-        `Your ${mediaType} has been sent to ${chatContext.friendUsername}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.navigate('Chat', {
-                friendId: chatContext.friendId,
-                friendUsername: chatContext.friendUsername
-              });
-            },
-          },
-        ]
-      );
+      // Navigate back to chat without alert for smoother experience
+      navigation.pop(2); // Go back twice: from MediaPreview -> Camera -> Chat
     } catch (error) {
       console.error('Error sending to friend:', error);
       Alert.alert('Error', 'Failed to send to friend');
@@ -163,11 +142,6 @@ export default function MediaPreviewScreen() {
         encoding: FileSystem.EncodingType.Base64,
       });
       
-      // Add filter info to caption if a filter is applied
-      const finalCaption = filterType && filterType !== 'none' 
-        ? `${caption}${caption ? ' ' : ''}[${getFilterName(filterType)} filter]`
-        : caption;
-      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('media')
         .upload(filePath, decode(base64), {
@@ -188,7 +162,7 @@ export default function MediaPreviewScreen() {
           author_id: user.id,
           media_url: publicUrl,
           media_type: mediaType,
-          caption: finalCaption,
+          caption: caption,
         });
 
       if (postError) throw postError;
@@ -227,20 +201,10 @@ export default function MediaPreviewScreen() {
       setSending(true);
       setUploadProgress(0);
 
-      // For photos with filters, we need to process them first
-      // Since we can't capture the filtered view directly, we'll send the original
-      // In a production app, you'd use a server-side solution or a more advanced library
-      const uriToSend = mediaUri; // For now, send original
-      
-      // Add filter info to caption if a filter is applied
-      const finalCaption = filterType && filterType !== 'none' 
-        ? `${caption}${caption ? ' ' : ''}[${getFilterName(filterType)} filter]`
-        : caption;
-      
       await sendSnapToSelf(
-        uriToSend,
+        mediaUri,
         mediaType,
-        finalCaption,
+        caption,
         user.username,
         (progress) => {
           setUploadProgress(progress);
@@ -273,37 +237,13 @@ export default function MediaPreviewScreen() {
   };
 
   const retake = () => {
-    navigation.goBack();
-  };
-
-  const renderFilteredImage = () => {
-    const filterMatrix = getFilterMatrix(filterType);
-    
-    if (!filterMatrix || filterType === 'none') {
-      return <Image source={{ uri: mediaUri }} style={styles.media} />;
+    if (chatContext) {
+      // If coming from chat, go back to camera which will still have chatContext
+      navigation.goBack();
+    } else {
+      // Normal flow - just go back to camera
+      navigation.goBack();
     }
-
-    if (filterType === 'face') {
-      // For face filter, overlay sunglasses on the image
-      return (
-        <View>
-          <Image source={{ uri: mediaUri }} style={styles.media} />
-          <View style={styles.faceOverlay}>
-            <View style={styles.sunglassesOverlay}>
-              <View style={styles.leftLensOverlay} />
-              <View style={styles.bridgeOverlay} />
-              <View style={styles.rightLensOverlay} />
-            </View>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <ColorMatrix matrix={filterMatrix}>
-        <Image source={{ uri: mediaUri }} style={styles.media} />
-      </ColorMatrix>
-    );
   };
 
   return (
@@ -313,7 +253,7 @@ export default function MediaPreviewScreen() {
     >
       <View style={styles.mediaContainer}>
         {mediaType === 'photo' ? (
-          renderFilteredImage()
+          <Image source={{ uri: mediaUri }} style={styles.media} />
         ) : (
           <VideoView
             style={styles.media}
@@ -375,16 +315,21 @@ export default function MediaPreviewScreen() {
                 disabled={sending}
               >
                 {sending ? (
-                  <ActivityIndicator color="#FFF" size="small" />
+                  <ActivityIndicator color="#000" size="small" />
                 ) : (
-                  <Text style={styles.storyButtonText}>My Story</Text>
+                  <Text style={styles.sendButtonText}>My Story</Text>
                 )}
               </TouchableOpacity>
             )}
 
             <TouchableOpacity 
-              style={[styles.sendButton, chatContext && styles.chatSendButton, sending && styles.sendButtonDisabled]}
-              onPress={() => chatContext ? sendToFriend() : sendSnap()}
+              style={[
+                styles.sendButton, 
+                styles.primarySendButton,
+                chatContext && styles.chatSendButton,
+                sending && styles.sendButtonDisabled
+              ]}
+              onPress={chatContext ? sendToFriend : sendSnap}
               disabled={sending}
             >
               {sending ? (
@@ -474,76 +419,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  sendOptions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   sendButton: {
-    backgroundColor: '#FFFC00',
-    paddingHorizontal: 30,
+    paddingHorizontal: 25,
     paddingVertical: 12,
     borderRadius: 25,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: 'bold',
+  storyButton: {
+    backgroundColor: '#FFF',
+  },
+  primarySendButton: {
+    backgroundColor: '#FFFC00',
+  },
+  chatSendButton: {
+    backgroundColor: '#0084FF',
   },
   sendButtonDisabled: {
-    backgroundColor: '#E6E600',
+    opacity: 0.7,
+  },
+  sendButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  chatSendButtonText: {
+    color: '#FFF',
   },
   uploadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  sendOptions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  storyButton: {
-    backgroundColor: '#9C27B0',
-  },
-  storyButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  chatSendButton: {
-    backgroundColor: '#00BF63',
-  },
-  chatSendButtonText: {
-    color: '#FFF',
-  },
   faceOverlay: {
     position: 'absolute',
-    top: '25%',
+    top: '30%',
     alignSelf: 'center',
+    alignItems: 'center',
   },
   sunglassesOverlay: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   leftLensOverlay: {
-    width: 90,
-    height: 75,
-    backgroundColor: '#000',
-    borderRadius: 45,
-    borderWidth: 4,
+    width: 70,
+    height: 60,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 35,
+    borderWidth: 3,
     borderColor: '#333',
-    opacity: 0.8,
   },
   bridgeOverlay: {
-    width: 25,
-    height: 4,
+    width: 20,
+    height: 3,
     backgroundColor: '#333',
-    marginHorizontal: -6,
+    marginHorizontal: -5,
   },
   rightLensOverlay: {
-    width: 90,
-    height: 75,
-    backgroundColor: '#000',
-    borderRadius: 45,
-    borderWidth: 4,
+    width: 70,
+    height: 60,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 35,
+    borderWidth: 3,
     borderColor: '#333',
-    opacity: 0.8,
   },
 });

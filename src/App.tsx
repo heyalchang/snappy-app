@@ -1,3 +1,9 @@
+import React from 'react';
+// Fix for gl-react compatibility with React 18+
+if (!React.RenderLessElement) {
+  React.RenderLessElement = React.Fragment;
+}
+
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Navigation from './Navigation';

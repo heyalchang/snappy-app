@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { getChatRooms, ChatRoom } from '../services/chat';
+import { supabase } from '../services/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 type NavigationProp = NativeStackNavigationProp<MainStackParamList>;
 
@@ -22,12 +24,9 @@ export default function ChatListScreen() {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
-  useEffect(() => {
-    loadChatRooms();
-  }, [user]);
-
-  const loadChatRooms = async () => {
+  const loadChatRooms = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -39,7 +38,44 @@ export default function ChatListScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadChatRooms();
+    }, [loadChatRooms])
+  );
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('chat-list-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `recipient_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Chat list change received!', payload);
+          loadChatRooms();
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user, loadChatRooms]);
 
   const onRefresh = () => {
     setRefreshing(true);
