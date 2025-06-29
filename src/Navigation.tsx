@@ -18,8 +18,10 @@ import AddFriendScreen from './screens/AddFriendScreen';
 import FriendsListScreen from './screens/FriendsListScreen';
 import StoriesScreen from './screens/StoriesScreen';
 import StoryViewerScreen from './screens/StoryViewerScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
 import ChatListScreen from './screens/ChatListScreen';
 import ChatScreen from './screens/ChatScreen';
+import DebugAIScreen from './screens/DebugAIScreen';
 import { FilterType } from './utils/filters';
 
 export type MainStackParamList = RootStackParamList;
@@ -41,6 +43,9 @@ export type RootStackParamList = {
   AddFriend: undefined;
   Friends: undefined;
   StoryViewer: { userId: string; initialStoryIndex?: number };
+  EditProfile: undefined;
+  DebugAI: undefined;
+  UserProfile: { userId: string };
 };
 
 export type MainTabParamList = {
@@ -160,6 +165,9 @@ export default function Navigation() {
             <Stack.Screen name="AddFriend" component={AddFriendScreen} />
             <Stack.Screen name="Friends" component={FriendsListScreen} />
             <Stack.Screen name="StoryViewer" component={StoryViewerScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="UserProfile" component={require('./screens/UserProfileScreen').default} />
+            <Stack.Screen name="DebugAI" component={DebugAIScreen} />
           </>
         )}
       </Stack.Navigator>

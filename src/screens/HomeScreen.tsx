@@ -1,15 +1,78 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ActivityIndicator, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
 
 type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   const { user, signOut } = useAuth();
+  const [showMagicModal, setShowMagicModal] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicImageUrl, setMagicImageUrl] = useState<string | null>(null);
+
+  const handleMagicPress = async () => {
+    console.log('=== MAGIC SNAP START ===');
+    console.log('Opening modal and starting generation...');
+    
+    setShowMagicModal(true);
+    setMagicLoading(true);
+    setMagicImageUrl(null);
+
+    try {
+      const payload = {
+        prompt: 'random jungle animal cartoon character riding a surfboard',
+        usePlaceholder: false
+      };
+      
+      console.log('Calling edge function with payload:', JSON.stringify(payload));
+      console.log('Function URL:', `${supabase.functions.url}/generate_magic_snap`);
+      
+      const startTime = Date.now();
+      const { data, error } = await supabase.functions.invoke('generate_magic_snap', {
+        body: payload
+      });
+      const endTime = Date.now();
+      
+      console.log(`Response received in ${endTime - startTime}ms`);
+      console.log('Response data:', data);
+      console.log('Response error:', error);
+      
+      if (error) {
+        console.error('Edge function error details:', {
+          message: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          context: error.context,
+          details: error.details
+        });
+        throw error;
+      }
+      
+      if (!data?.url) {
+        console.error('Invalid response format:', data);
+        throw new Error('No image URL returned');
+      }
+
+      console.log('Successfully received image URL:', data.url);
+      setMagicImageUrl(data.url);
+      console.log('=== MAGIC SNAP SUCCESS ===');
+    } catch (error) {
+      console.error('=== MAGIC SNAP ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Full error:', error);
+      console.error('Stack trace:', error.stack);
+      Alert.alert('Error', `Failed to generate magic snap: ${error.message}`);
+      setShowMagicModal(false);
+    } finally {
+      setMagicLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -65,7 +128,47 @@ export default function HomeScreen() {
             {user?.avatarEmoji} {user?.avatarColor}
           </Text>
         </View>
+        
+        {/* Magic sparkle button - temporary */}
+        <TouchableOpacity 
+          style={styles.magicButton}
+          onPress={handleMagicPress}
+        >
+          <Text style={styles.magicButtonText}>✨</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Magic Modal */}
+      <Modal
+        visible={showMagicModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowMagicModal(false);
+          setMagicImageUrl(null);
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setShowMagicModal(false);
+            setMagicImageUrl(null);
+          }}
+        >
+          <View style={styles.modalContent}>
+            {magicLoading ? (
+              <ActivityIndicator size="large" color="#FFFC00" />
+            ) : magicImageUrl ? (
+              <Image 
+                source={{ uri: magicImageUrl }} 
+                style={styles.magicImage}
+                resizeMode="contain"
+              />
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -166,5 +269,35 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#FFFC00',
     transform: [{ rotate: '90deg' }],
+  },
+  magicButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  magicButtonText: {
+    fontSize: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    height: '60%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  magicImage: {
+    width: '100%',
+    height: '100%',
   },
 });

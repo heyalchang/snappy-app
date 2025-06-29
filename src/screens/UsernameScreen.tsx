@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+} from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
@@ -18,12 +32,16 @@ interface Props {
 export default function UsernameScreen({ navigation, route }: Props) {
   const [displayName, setDisplayName] = useState('');
   const [age, setAge] = useState('');
+  const [ageModalVisible, setAgeModalVisible] = useState(false);
   const [influencerFocus, setInfluencerFocus] = useState<'food' | 'fitness' | 'travel' | 'mom' | 'ai' | ''>('');
   const [blogUrl, setBlogUrl] = useState('');
   const [bio, setBio] = useState('');
   const [generatingPersona, setGeneratingPersona] = useState(false);
   const { signIn } = useAuth();
   const username = route.params.username;
+
+  // Safe-area insets (for bottom padding)
+  const insets = useSafeAreaInsets();
 
   const generateInitialPersona = async (
     userName: string, 
@@ -107,8 +125,8 @@ export default function UsernameScreen({ navigation, route }: Props) {
 
   const handleComplete = async () => {
     const userAge = parseInt(age);
-    if (!age || userAge < 13 || userAge > 100) {
-      Alert.alert('Invalid Age', 'Please enter a valid age between 13 and 100.');
+    if (!age || isNaN(userAge) || userAge < 13 || userAge > 60) {
+      Alert.alert('Invalid Age', 'Please select an age between 13 and 60.');
       return;
     }
 
@@ -168,7 +186,10 @@ export default function UsernameScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+  <KeyboardAvoidingView
+    style={styles.container}
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  >
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -176,7 +197,12 @@ export default function UsernameScreen({ navigation, route }: Props) {
         <Text style={styles.backText}>←</Text>
       </TouchableOpacity>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Create your profile</Text>
         <Text style={styles.subtitle}>
           Choose a username and display name
@@ -200,19 +226,23 @@ export default function UsernameScreen({ navigation, route }: Props) {
           />
         </View>
 
+        {/* AGE INPUT ------------------------------------------------------- */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Age *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="18"
-            value={age}
-            onChangeText={setAge}
-            keyboardType="number-pad"
-            maxLength={3}
-          />
-          <Text style={styles.hint}>
-            Must be 13 or older to use this app
-          </Text>
+          <TouchableOpacity
+            style={styles.dropdown}
+            onPress={() => setAgeModalVisible(true)}
+          >
+            <Text
+              style={[
+                styles.dropdownText,
+                !age && styles.dropdownPlaceholder,
+              ]}
+            >
+              {age ? age : 'Select age'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.hint}>Must be 13 or older</Text>
         </View>
 
         <View style={styles.inputContainer}>
@@ -276,7 +306,34 @@ export default function UsernameScreen({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
       </ScrollView>
-    </View>
+
+      <Modal
+        visible={ageModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAgeModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={age}
+              onValueChange={(val) => setAge(String(val))}
+            >
+              {Array.from({ length: 48 }, (_, i) => i + 13).map((n) => (
+                <Picker.Item key={n} label={`${n}`} value={`${n}`} />
+              ))}
+            </Picker>
+
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => setAgeModalVisible(false)}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+  </KeyboardAvoidingView>
   );
 }
 
@@ -381,5 +438,40 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'right',
     marginTop: 5,
+  },
+  picker: {
+    height: 50,
+    color: '#000',
+  },
+  dropdown: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#000',
+    paddingVertical: 12,
+  },
+  dropdownText: {
+    fontSize: 18,
+    color: '#000',
+  },
+  dropdownPlaceholder: {
+    color: '#999',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  pickerContainer: {
+    backgroundColor: '#FFF',
+    paddingBottom: 20,
+  },
+  doneButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2196F3',
   },
 });

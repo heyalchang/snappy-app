@@ -112,14 +112,18 @@ export default function ChatListScreen() {
           friendUsername: item.otherUser?.username || 'Unknown'
         })}
       >
-        <View style={[
-          styles.avatar,
-          { backgroundColor: item.otherUser?.avatar_color || '#FFB6C1' }
-        ]}>
-          <Text style={styles.avatarEmoji}>
-            {item.otherUser?.avatar_emoji || '👤'}
-          </Text>
-        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('UserProfile', { userId: item.otherUserId })}
+        >
+          <View style={[
+            styles.avatar,
+            { backgroundColor: item.otherUser?.avatar_color || '#FFB6C1' }
+          ]}>
+            <Text style={styles.avatarEmoji}>
+              {item.otherUser?.avatar_emoji || '👤'}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.chatInfo}>
           <Text style={styles.username}>

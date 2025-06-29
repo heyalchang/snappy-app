@@ -17,6 +17,7 @@ import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Message,
   getMessages,
@@ -41,6 +42,9 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+
+  // Safe-area for input bar spacing
+  const insets = useSafeAreaInsets();
 
   const roomId = user ? getRoomId(user.id, friendId) : '';
 
@@ -268,7 +272,7 @@ export default function ChatScreen() {
         }
       />
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: 15 + insets.bottom }]}>
         <TouchableOpacity 
           style={styles.cameraButton}
           onPress={() => {

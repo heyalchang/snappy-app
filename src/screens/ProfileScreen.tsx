@@ -129,7 +129,12 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Profile</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={styles.headerEditButton}
+          onPress={() => navigation.navigate('EditProfile')}
+        >
+          <Text style={styles.headerEditText}>✏️</Text>
+        </TouchableOpacity>
       </View>
       
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -165,6 +170,14 @@ export default function ProfileScreen({ navigation }: Props) {
             {profileData.follower_count.toLocaleString()} followers
           </Text>
         )}
+        {profileData.blog_url && (
+          <TouchableOpacity
+            style={{ marginTop: 10 }}
+            onPress={() => Linking.openURL(profileData.blog_url!)}
+          >
+            <Text style={styles.websiteText}>{profileData.blog_url}</Text>
+          </TouchableOpacity>
+        )}
       </View>
       
       {profileData.bio && (
@@ -180,14 +193,6 @@ export default function ProfileScreen({ navigation }: Props) {
         </View>
       )}
       
-      {profileData.blog_url && (
-        <TouchableOpacity 
-          style={styles.blogButton}
-          onPress={() => Linking.openURL(profileData.blog_url!)}
-        >
-          <Text style={styles.blogButtonText}>🌐 Visit My Blog</Text>
-        </TouchableOpacity>
-      )}
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
@@ -207,19 +212,21 @@ export default function ProfileScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('AddFriend')}
-        >
-          <Text style={styles.actionButtonText}>Add Friends</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonHalf]}
+            onPress={() => navigation.navigate('AddFriend')}
+          >
+            <Text style={styles.actionButtonText}>Add Friends</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Friends')}
-        >
-          <Text style={styles.actionButtonText}>My Friends</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonHalf]}
+            onPress={() => navigation.navigate('Friends')}
+          >
+            <Text style={styles.actionButtonText}>My Friends</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[styles.actionButton, styles.signOutButton]}
@@ -264,9 +271,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  headerEditButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerEditText: {
+    color: '#FFFC00',
+    fontSize: 20,
+  },
   profileSection: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingVertical: 10, // tightened
   },
   avatarContainer: {
     width: 100,
@@ -296,7 +313,7 @@ const styles = StyleSheet.create({
   },
   personaContainer: {
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 12, // tightened
     padding: 15,
     backgroundColor: '#111',
     borderRadius: 12,
@@ -315,11 +332,11 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 40,
-    paddingVertical: 20,
+    paddingVertical: 10, // tightened
     marginHorizontal: 20,
     backgroundColor: '#111',
     borderRadius: 12,
-    marginBottom: 30,
+    marginBottom: 12, // tightened
   },
   statItem: {
     flex: 1,
@@ -343,6 +360,15 @@ const styles = StyleSheet.create({
   actionsContainer: {
     paddingHorizontal: 20,
   },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 6, // reduced from 12
+  },
+  actionButtonHalf: {
+    flex: 1,
+  },
   actionButton: {
     backgroundColor: '#FFFC00',
     paddingVertical: 15,
@@ -350,16 +376,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  actionButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   signOutButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: '#ff4444',
-    marginTop: 20,
+    marginTop: 8, // reduced from 20
   },
   signOutButtonText: {
     color: '#ff4444',
@@ -377,6 +398,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  websiteText: {
+    color: '#2196F3',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+    marginTop: 4,
   },
   followerCount: {
     color: '#FFFC00',

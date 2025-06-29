@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { MainStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'Friends'>;
 
@@ -30,13 +32,61 @@ export default function FriendsListScreen({ navigation }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Realtime channel to auto-refresh when friendships change
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     loadFriends();
   }, [user]);
 
+  /* --------------------------------------------------------------------- */
+  /*               Realtime subscription to friendship changes             */
+  /* --------------------------------------------------------------------- */
+  useEffect(() => {
+    if (!user) return;
+
+    // Create a dedicated channel
+    const channel = supabase
+      .channel('friends-list-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+        },
+        (payload) => {
+          const { user_id, friend_id } = (payload.new ?? payload.old) as {
+            user_id: string;
+            friend_id: string;
+          };
+
+          // Only refresh if the current user is part of the friendship
+          if (user_id === user.id || friend_id === user.id) {
+            console.log(
+              '[FriendsList] Realtime friendship update detected → refreshing list',
+              payload
+            );
+            loadFriends(false); // silent refresh
+          }
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user, loadFriends]);
+
   const loadFriends = async () => {
     if (!user) return;
+
+    console.log('[FriendsList] === loadFriends start ===');
 
     try {
       // Get all friendships for current user
@@ -72,13 +122,15 @@ export default function FriendsListScreen({ navigation }: Props) {
       // Convert to array and sort by username
       const friendProfiles = Array.from(friendMap.values());
       friendProfiles.sort((a, b) => a.username.localeCompare(b.username));
-      
+
+      console.log('[FriendsList] Fetched friends:', friendProfiles.length);
       setFriends(friendProfiles);
     } catch (error) {
-      console.error('Error loading friends:', error);
+      console.error('[FriendsList] Error loading friends:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      console.log('[FriendsList] === loadFriends end ===');
     }
   };
 
@@ -98,16 +150,20 @@ export default function FriendsListScreen({ navigation }: Props) {
       }}
     >
       <View style={styles.friendInfo}>
-        <View
-          style={[
-            styles.avatarContainer,
-            { backgroundColor: item.avatar_color || '#FFB6C1' }
-          ]}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
         >
-          <Text style={styles.avatarEmoji}>
-            {item.avatar_emoji || '😎'}
-          </Text>
-        </View>
+          <View
+            style={[
+              styles.avatarContainer,
+              { backgroundColor: item.avatar_color || '#FFB6C1' }
+            ]}
+          >
+            <Text style={styles.avatarEmoji}>
+              {item.avatar_emoji || '😎'}
+            </Text>
+          </View>
+        </TouchableOpacity>
         <View style={styles.friendDetails}>
           <Text style={styles.friendUsername}>@{item.username}</Text>
           {item.display_name && item.display_name !== item.username && (

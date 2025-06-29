@@ -76,6 +76,8 @@ async function sendAutoResponse(roomId: string, senderId: string, recipientId: s
   setTimeout(async () => {
     try {
       // Get sender and recipient profiles
+      console.log('[AI Debug] Fetching profiles for:', { senderId, recipientId });
+      
       const [senderProfile, recipientProfile] = await Promise.all([
         supabase
           .from('profiles')
@@ -89,8 +91,19 @@ async function sendAutoResponse(roomId: string, senderId: string, recipientId: s
           .single()
       ]);
 
+      console.log('[AI Debug] Profile fetch results:', {
+        senderProfile: {
+          data: senderProfile.data,
+          error: senderProfile.error
+        },
+        recipientProfile: {
+          data: recipientProfile.data,
+          error: recipientProfile.error
+        }
+      });
+
       if (!senderProfile.data || !recipientProfile.data) {
-        throw new Error('Could not fetch profiles');
+        throw new Error(`Could not fetch profiles - sender: ${!senderProfile.data}, recipient: ${!recipientProfile.data}`);
       }
 
       // Get recent message history
@@ -110,27 +123,91 @@ async function sendAutoResponse(roomId: string, senderId: string, recipientId: s
         }));
 
       // Call edge function for AI response
-      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('generate-chat-response', {
-        body: {
-          senderName: senderProfile.data.username,
-          senderPersona: senderProfile.data.persona || 'A friendly person who likes to chat.',
-          senderAge: senderProfile.data.age || 18,
-          recipientName: recipientProfile.data.username,
-          recipientPersona: recipientProfile.data.persona || 'A friendly person who likes to chat.',
-          recipientAge: recipientProfile.data.age || 18,
-          recipientGoals: recipientProfile.data.messaging_goals || 'Be friendly and engaging.',
-          messageThread
-        }
+      console.log('[AI Debug] Preparing edge function call with:', {
+        senderName: senderProfile.data.username,
+        senderAge: senderProfile.data.age,
+        hasPersona: !!senderProfile.data.persona,
+        recipientName: recipientProfile.data.username,
+        recipientAge: recipientProfile.data.age,
+        hasRecipientPersona: !!recipientProfile.data.persona,
+        messageCount: messageThread.length
       });
+
+      const edgeFunctionPayload = {
+        senderName: senderProfile.data.username,
+        senderPersona: senderProfile.data.persona || 'A friendly person who likes to chat.',
+        senderAge: senderProfile.data.age || 18,
+        recipientName: recipientProfile.data.username,
+        recipientPersona: recipientProfile.data.persona || 'A friendly person who likes to chat.',
+        recipientAge: recipientProfile.data.age || 18,
+        recipientGoals: recipientProfile.data.messaging_goals || 'Be friendly and engaging.',
+        messageThread
+      };
+
+      // Log the full payload being sent
+      console.log('=== AI CHAT REQUEST ===');
+      console.log('Timestamp:', new Date().toISOString());
+      console.log('Function URL:', `${supabase.functions.url}/generate-chat-response`);
+      console.log('Payload being sent:');
+      console.log(JSON.stringify(edgeFunctionPayload, null, 2));
+      
+      // Show what prompt will be constructed
+      const messageHistory = edgeFunctionPayload.messageThread
+        .slice(-10)
+        .map(msg => `${msg.sender}: ${msg.content}`)
+        .join('\n');
+      
+      const constructedPrompt = `You are ${edgeFunctionPayload.recipientName}, a ${edgeFunctionPayload.recipientAge}-year-old with this background: ${edgeFunctionPayload.recipientPersona}
+
+Your messaging style and goals: ${edgeFunctionPayload.recipientGoals}
+
+You're chatting with ${edgeFunctionPayload.senderName}, a ${edgeFunctionPayload.senderAge}-year-old: ${edgeFunctionPayload.senderPersona}
+
+Recent conversation:
+${messageHistory}
+
+Respond naturally as ${edgeFunctionPayload.recipientName} in ONE SHORT SENTENCE (under 15 words). Be authentic to your persona and age. Keep it casual and conversational.`;
+
+      console.log('\n--- PROMPT THAT WILL BE SENT TO GPT ---');
+      console.log(constructedPrompt);
+      console.log('--- END PROMPT ---\n');
+      console.log('======================');
+      
+      const startTime = Date.now();
+      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('generate-chat-response', {
+        body: edgeFunctionPayload
+      });
+      const endTime = Date.now();
+
+      console.log('=== AI CHAT RESPONSE ===');
+      console.log('Response time:', `${endTime - startTime}ms`);
+      console.log('Success:', !aiError);
+      console.log('Response data:', aiResponse);
+      console.log('Error:', aiError);
+      if (aiError) {
+        console.error('Error details:', {
+          message: aiError.message,
+          status: aiError.status,
+          statusText: aiError.statusText,
+          context: aiError.context,
+          hint: aiError.hint
+        });
+      }
+      console.log('========================');
 
       let response: string;
       if (aiError || !aiResponse?.response) {
         // Fallback to random response if AI fails
         response = getRandomResponse();
-        console.log('AI failed, using fallback response:', response);
+        console.log('=== USING FALLBACK RESPONSE ===');
+        console.log('Reason: AI failed or no response');
+        console.log('Fallback response:', response);
+        console.log('================================');
       } else {
         response = aiResponse.response;
-        console.log('AI response:', response);
+        console.log('=== AI RESPONSE SUCCESSFUL ===');
+        console.log('AI generated:', response);
+        console.log('==============================');
       }
       
       const { data, error } = await supabase

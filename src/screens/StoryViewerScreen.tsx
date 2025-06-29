@@ -41,8 +41,21 @@ interface Story {
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function StoryViewerScreen() {
+  // Navigation & route hooks
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteTypeProp>();
+
+  // ------------------------------------------------------------------------
+  // Safely exit the viewer. If there is no previous screen (canGoBack ===
+  // false), fall back to the Stories tab so we never dispatch an unhandled
+  // GO_BACK action.
+  const safeGoBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Stories' as never);
+    }
+  };
   const { userId, initialStoryIndex = 0 } = route.params;
   const { user } = useAuth();
   
@@ -103,7 +116,7 @@ export default function StoryViewerScreen() {
     } catch (error) {
       console.error('Error loading stories:', error);
       Alert.alert('Error', 'Failed to load stories');
-      navigation.goBack();
+      safeGoBack();
     } finally {
       setLoading(false);
     }
@@ -152,7 +165,7 @@ export default function StoryViewerScreen() {
     if (currentIndex < stories.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      navigation.goBack();
+      safeGoBack();
     }
   };
 
@@ -183,7 +196,7 @@ export default function StoryViewerScreen() {
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 100) {
-          navigation.goBack();
+          safeGoBack();
         } else {
           Animated.spring(translateY, {
             toValue: 0,
@@ -203,7 +216,7 @@ export default function StoryViewerScreen() {
   }
 
   if (stories.length === 0) {
-    navigation.goBack();
+    safeGoBack();
     return null;
   }
 
@@ -262,7 +275,7 @@ export default function StoryViewerScreen() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={safeGoBack}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
