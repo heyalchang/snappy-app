@@ -20,6 +20,12 @@ interface ProfileStats {
   storiesPosted: number;
 }
 
+interface ProfileData {
+  persona?: string | null;
+  age?: number | null;
+  messaging_goals?: string | null;
+}
+
 export default function ProfileScreen({ navigation }: Props) {
   const { user, signOut } = useAuth();
   const [stats, setStats] = useState<ProfileStats>({
@@ -27,6 +33,7 @@ export default function ProfileScreen({ navigation }: Props) {
     snapScore: 0,
     storiesPosted: 0,
   });
+  const [profileData, setProfileData] = useState<ProfileData>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,10 +53,10 @@ export default function ProfileScreen({ navigation }: Props) {
         .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
         .eq('status', 'accepted');
 
-      // Get snap score from profile
+      // Get snap score and persona data from profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('snap_score')
+        .select('snap_score, persona, age, messaging_goals')
         .eq('id', user.id)
         .single();
 
@@ -63,6 +70,12 @@ export default function ProfileScreen({ navigation }: Props) {
         friendCount: friendCount || 0,
         snapScore: profile?.snap_score || 0,
         storiesPosted: storiesCount || 0,
+      });
+      
+      setProfileData({
+        persona: profile?.persona,
+        age: profile?.age,
+        messaging_goals: profile?.messaging_goals,
       });
     } catch (error) {
       console.error('Error loading profile stats:', error);
@@ -125,7 +138,17 @@ export default function ProfileScreen({ navigation }: Props) {
         {user?.display_name && (
           <Text style={styles.displayName}>{user.display_name}</Text>
         )}
+        {profileData.age && (
+          <Text style={styles.ageText}>Age {profileData.age}</Text>
+        )}
       </View>
+      
+      {profileData.persona && (
+        <View style={styles.personaContainer}>
+          <Text style={styles.personaTitle}>About Me</Text>
+          <Text style={styles.personaText}>{profileData.persona}</Text>
+        </View>
+      )}
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
@@ -222,6 +245,29 @@ const styles = StyleSheet.create({
   displayName: {
     color: '#999',
     fontSize: 16,
+  },
+  ageText: {
+    color: '#FFFC00',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  personaContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#111',
+    borderRadius: 12,
+  },
+  personaTitle: {
+    color: '#FFFC00',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  personaText: {
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 20,
   },
   statsContainer: {
     flexDirection: 'row',

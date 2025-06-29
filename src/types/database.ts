@@ -10,6 +10,9 @@ export interface Database {
           avatar_emoji: string | null;
           avatar_color: string | null;
           display_name: string | null;
+          persona: string | null;
+          age: number | null;
+          messaging_goals: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -20,6 +23,9 @@ export interface Database {
           avatar_emoji?: string | null;
           avatar_color?: string | null;
           display_name?: string | null;
+          persona?: string | null;
+          age?: number | null;
+          messaging_goals?: string | null;
           created_at?: string | null;
         };
         Update: {
@@ -30,6 +36,9 @@ export interface Database {
           avatar_emoji?: string | null;
           avatar_color?: string | null;
           display_name?: string | null;
+          persona?: string | null;
+          age?: number | null;
+          messaging_goals?: string | null;
           created_at?: string | null;
         };
       };

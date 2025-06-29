@@ -68,15 +68,70 @@ function getRandomResponse(): string {
   return AUTO_RESPONSES[Math.floor(Math.random() * AUTO_RESPONSES.length)];
 }
 
-// Send auto-response after a delay
-async function sendAutoResponse(roomId: string, senderId: string, recipientId: string) {
+// Send AI-generated auto-response after a delay
+async function sendAutoResponse(roomId: string, senderId: string, recipientId: string, lastMessage: string) {
   // Wait 1-3 seconds for more natural feeling
   const delay = 1000 + Math.random() * 2000;
   
   setTimeout(async () => {
     try {
-      const response = getRandomResponse();
-      console.log('Sending auto-response:', { roomId, from: recipientId, to: senderId, message: response });
+      // Get sender and recipient profiles
+      const [senderProfile, recipientProfile] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('username, persona, age, messaging_goals')
+          .eq('id', senderId)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('username, persona, age, messaging_goals')
+          .eq('id', recipientId)
+          .single()
+      ]);
+
+      if (!senderProfile.data || !recipientProfile.data) {
+        throw new Error('Could not fetch profiles');
+      }
+
+      // Get recent message history
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('sender_id, content, created_at')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const messageThread = (messages || [])
+        .reverse()
+        .map(msg => ({
+          sender: msg.sender_id === senderId ? senderProfile.data.username : recipientProfile.data.username,
+          content: msg.content || '',
+          timestamp: msg.created_at
+        }));
+
+      // Call edge function for AI response
+      const { data: aiResponse, error: aiError } = await supabase.functions.invoke('generate-chat-response', {
+        body: {
+          senderName: senderProfile.data.username,
+          senderPersona: senderProfile.data.persona || 'A friendly person who likes to chat.',
+          senderAge: senderProfile.data.age || 18,
+          recipientName: recipientProfile.data.username,
+          recipientPersona: recipientProfile.data.persona || 'A friendly person who likes to chat.',
+          recipientAge: recipientProfile.data.age || 18,
+          recipientGoals: recipientProfile.data.messaging_goals || 'Be friendly and engaging.',
+          messageThread
+        }
+      });
+
+      let response: string;
+      if (aiError || !aiResponse?.response) {
+        // Fallback to random response if AI fails
+        response = getRandomResponse();
+        console.log('AI failed, using fallback response:', response);
+      } else {
+        response = aiResponse.response;
+        console.log('AI response:', response);
+      }
       
       const { data, error } = await supabase
         .from('messages')
@@ -97,6 +152,17 @@ async function sendAutoResponse(roomId: string, senderId: string, recipientId: s
       }
     } catch (error) {
       console.error('Error in auto-response:', error);
+      // Try to send a fallback response
+      const fallbackResponse = getRandomResponse();
+      await supabase
+        .from('messages')
+        .insert({
+          room_id: roomId,
+          sender_id: recipientId,
+          recipient_id: senderId,
+          content: fallbackResponse,
+          type: 'text',
+        });
     }
   }, delay);
 }
@@ -152,7 +218,7 @@ export async function sendTextMessage(
   };
   
   // Send auto-response from the friend
-  sendAutoResponse(roomId, senderId, recipientId);
+  sendAutoResponse(roomId, senderId, recipientId, content);
   
   return messageWithSender;
 }
@@ -194,7 +260,7 @@ export async function sendMediaMessage(
   };
   
   // Send auto-response from the friend
-  sendAutoResponse(roomId, senderId, recipientId);
+  sendAutoResponse(roomId, senderId, recipientId, caption || `sent a ${mediaType}`);
   
   return messageWithSender;
 }

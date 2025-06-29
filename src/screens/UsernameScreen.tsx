@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
@@ -17,31 +17,109 @@ interface Props {
 
 export default function UsernameScreen({ navigation, route }: Props) {
   const [displayName, setDisplayName] = useState('');
+  const [age, setAge] = useState('');
+  const [generatingPersona, setGeneratingPersona] = useState(false);
   const { signIn } = useAuth();
   const username = route.params.username;
 
+  const generateInitialPersona = async (userName: string, userAge: number): Promise<{
+    persona: string;
+    messaging_goals: string;
+  }> => {
+    // Simple persona generation based on age and some randomization
+    const teenTraits = [
+      "loves gaming and hanging with friends",
+      "into music and always discovering new artists",
+      "plays sports and stays active",
+      "creative type who loves art and design",
+      "tech savvy and always trying new apps"
+    ];
+    
+    const youngAdultTraits = [
+      "college student studying hard and partying harder",
+      "working professional climbing the career ladder",
+      "entrepreneur with big dreams and ideas",
+      "travel enthusiast exploring the world",
+      "fitness junkie who loves staying healthy"
+    ];
+    
+    const adultTraits = [
+      "career-focused with a passion for their work",
+      "family-oriented and loves spending time with loved ones",
+      "hobby enthusiast always learning new skills",
+      "community volunteer making a difference",
+      "outdoor adventurer who loves nature"
+    ];
+    
+    let traits: string[];
+    let goals: string;
+    
+    if (userAge < 20) {
+      traits = teenTraits;
+      goals = "Keep conversations fun, use lots of emojis, and be enthusiastic about shared interests.";
+    } else if (userAge < 30) {
+      traits = youngAdultTraits;
+      goals = "Be relatable and supportive, share experiences, and keep things positive but real.";
+    } else {
+      traits = adultTraits;
+      goals = "Be thoughtful and engaging, share wisdom when appropriate, and maintain genuine connections.";
+    }
+    
+    const randomTrait = traits[Math.floor(Math.random() * traits.length)];
+    const hobbies = ["cooking", "reading", "gaming", "hiking", "photography", "dancing", "coding"];
+    const randomHobby = hobbies[Math.floor(Math.random() * hobbies.length)];
+    
+    const persona = `${userName} is a ${userAge}-year-old who ${randomTrait}. They enjoy ${randomHobby} in their free time and value authentic connections with friends.`;
+    
+    return { persona, messaging_goals: goals };
+  };
+
   const handleComplete = async () => {
+    const userAge = parseInt(age);
+    if (!age || userAge < 13 || userAge > 100) {
+      Alert.alert('Invalid Age', 'Please enter a valid age between 13 and 100.');
+      return;
+    }
+
+    setGeneratingPersona(true);
+    
     try {
       // First sign in the user
       await signIn(username);
       
-      // Then get the current user to update display name if provided
-      if (displayName.trim()) {
-        const currentUser = await getCurrentUser();
-        if (currentUser) {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ display_name: displayName.trim() })
-            .eq('id', currentUser.id);
-          
-          if (error) throw error;
+      // Generate initial persona
+      const { persona, messaging_goals } = await generateInitialPersona(
+        displayName.trim() || username,
+        userAge
+      );
+      
+      // Then get the current user to update profile
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const updates: any = {
+          age: userAge,
+          persona,
+          messaging_goals
+        };
+        
+        if (displayName.trim()) {
+          updates.display_name = displayName.trim();
         }
+        
+        const { error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', currentUser.id);
+        
+        if (error) throw error;
       }
       
       // Navigation will automatically switch to authenticated stack
       // since user is now signed in via auth context
     } catch (error) {
       Alert.alert('Error', 'Failed to complete setup. Please try again.');
+    } finally {
+      setGeneratingPersona(false);
     }
   };
 
@@ -78,11 +156,31 @@ export default function UsernameScreen({ navigation, route }: Props) {
           />
         </View>
 
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Age *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="18"
+            value={age}
+            onChangeText={setAge}
+            keyboardType="number-pad"
+            maxLength={3}
+          />
+          <Text style={styles.hint}>
+            Must be 13 or older to use this app
+          </Text>
+        </View>
+
         <TouchableOpacity
-          style={styles.completeButton}
+          style={[styles.completeButton, generatingPersona && styles.disabledButton]}
           onPress={handleComplete}
+          disabled={generatingPersona}
         >
-          <Text style={styles.completeText}>Complete Setup</Text>
+          {generatingPersona ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.completeText}>Complete Setup</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
