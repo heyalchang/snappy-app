@@ -157,7 +157,13 @@ export default function CameraScreen() {
 
       {/* Bottom controls */}
       <View style={styles.bottomRow}>
-        <TouchableOpacity onPress={() => navigation.navigate('Stories')}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('MainTabs', {
+              screen: 'Stories',
+            } as any)
+          }
+        >
           <Text style={styles.smallTxt}>Stories</Text>
         </TouchableOpacity>
 

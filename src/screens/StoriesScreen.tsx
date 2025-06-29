@@ -7,12 +7,17 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal, // Added
+  TextInput, // Added
+  Image, // Added for Insta Story display
+  Alert, // Added for error alerts
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { createInstaStory } from '../services/instaStory'; // Added
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -34,6 +39,58 @@ export default function StoriesScreen() {
   const [friendsWithStories, setFriendsWithStories] = useState<StoryUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Add state & handlers at top of component (after existing state declarations)
+  const [instaVisible, setInstaVisible] = useState(false);
+  const [instaKeyword, setInstaKeyword] = useState('');
+  const [instaStage, setInstaStage] = useState<'idle' | 'prompt' | 'image'>('idle');
+  const [instaUrl, setInstaUrl] = useState<string | null>(null);
+  const [instaCaption, setInstaCaption] = useState<string>('');
+
+  const startInstaFlow = () => {
+    setInstaKeyword('');
+    setInstaStage('idle');
+    setInstaUrl(null);
+    setInstaCaption('');
+    setInstaVisible(true);
+  };
+
+  const runInstaGeneration = async () => {
+    if (!instaKeyword.trim() || !user) return;
+    try {
+      setInstaStage('prompt');
+      const { url, caption } = await createInstaStory(instaKeyword.trim(), {
+        username: user.username,
+        display_name: user.display_name,
+        influencer_focus: (user as any).influencer_focus ?? null,
+      });
+      setInstaUrl(url);
+      setInstaCaption(caption);
+      setInstaStage('image');
+    } catch (err) {
+      console.error('[Stories] Insta Story error:', err);
+      Alert.alert('Error', 'Could not generate Insta Story');
+      setInstaStage('idle');
+    }
+  };
+
+  const postInstaStory = async () => {
+    if (!user || !instaUrl) return;
+    try {
+      await supabase.from('posts').insert({
+        author_id: user.id,
+        media_url: instaUrl,
+        media_type: 'photo',
+        caption: instaCaption,
+      });
+      setInstaVisible(false);
+      // refresh list
+      loadFriendsWithStories();
+    } catch (err) {
+      console.error('[Stories] Post story error:', err);
+      Alert.alert('Error', 'Failed to post story');
+    }
+  };
 
   useEffect(() => {
     loadFriendsWithStories();
@@ -193,6 +250,94 @@ export default function StoriesScreen() {
           contentContainerStyle={styles.gridContent}
         />
       )}
+
+      {/* Add Insta Story FAB just before closing root View */}
+      <TouchableOpacity
+        style={styles.instaFab}
+        onPress={startInstaFlow}
+      >
+        <Text style={{ fontSize: 28, color: '#000' }}>📸</Text>
+      </TouchableOpacity>
+
+      {/* Add Modal JSX near end of return block (sibling to existing content) */}
+      <Modal
+        visible={instaVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInstaVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            {instaStage === 'idle' && (
+              <>
+                <Text style={styles.modalTitle}>Insta Story Generator</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter word or phrase…"
+                  placeholderTextColor="#666"
+                  value={instaKeyword}
+                  onChangeText={setInstaKeyword}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.generateBtn,
+                    !instaKeyword.trim() && { opacity: 0.5 },
+                  ]}
+                  disabled={!instaKeyword.trim()}
+                  onPress={runInstaGeneration}
+                >
+                  <Text style={styles.genBtnTxt}>Generate</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {instaStage !== 'idle' && (
+              <>
+                {instaStage === 'prompt' && (
+                  <>
+                    <ActivityIndicator color="#FFFC00" />
+                    <Text style={styles.statusTxt}>Creating prompt…</Text>
+                  </>
+                )}
+
+                {instaStage === 'image' && !instaUrl && (
+                  <>
+                    <ActivityIndicator color="#FFFC00" />
+                    <Text style={styles.statusTxt}>Generating image…</Text>
+                  </>
+                )}
+
+                {instaUrl && (
+                  <>
+                    <Image
+                      source={{ uri: instaUrl }}
+                      style={{ width: '100%', height: 300, borderRadius: 12 }}
+                      resizeMode="cover"
+                    />
+                    {instaCaption ? (
+                      <Text style={styles.captionTxt}>{instaCaption}</Text>
+                    ) : null}
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={styles.rejectBtn}
+                        onPress={() => setInstaVisible(false)}
+                      >
+                        <Text style={styles.rejectTxt}>Reject</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.postBtn}
+                        onPress={postInstaStory}
+                      >
+                        <Text style={styles.postTxt}>Post</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -273,4 +418,82 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 5,
   },
+  // Add styles at bottom
+  instaFab: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+    backgroundColor: '#FFFC00',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: '#111',
+    borderRadius: 12,
+    color: '#FFF',
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  generateBtn: {
+    backgroundColor: '#FFFC00',
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  genBtnTxt: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+  statusTxt: { color: '#FFF', fontSize: 14, marginTop: 12 },
+  captionTxt: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  rejectBtn: {
+    flex: 1,
+    marginRight: 10,
+    backgroundColor: '#333',
+    paddingVertical: 12,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  postBtn: {
+    flex: 1,
+    marginLeft: 10,
+    backgroundColor: '#FFFC00',
+    paddingVertical: 12,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  rejectTxt: { color: '#FFF', fontSize: 15, fontWeight: '600' },
+  postTxt: { color: '#000', fontSize: 15, fontWeight: '600' },
 });

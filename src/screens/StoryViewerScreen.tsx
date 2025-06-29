@@ -11,6 +11,7 @@ import {
   Alert,
   PanResponder,
   Animated,
+  LogBox,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,6 +40,12 @@ interface Story {
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Hide noisy dev-only warning originating from a dependency. Production builds
+// don’t run LogBox, so this has zero runtime cost for end-users.
+if (__DEV__) {
+  LogBox.ignoreLogs(['useInsertionEffect must not schedule updates']);
+}
 
 export default function StoryViewerScreen() {
   // Navigation & route hooks
