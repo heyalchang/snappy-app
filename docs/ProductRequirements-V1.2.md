@@ -98,7 +98,7 @@ A working demo that shows:
 - **No blocking or unfriending** (keep it simple)
 
 ### 3.7 Fake Friends System
-- **200 pre-populated fake profiles** with:
+- **10 pre-populated fake profiles** with:
   - Realistic usernames
   - Random avatars
   - Varied snap scores

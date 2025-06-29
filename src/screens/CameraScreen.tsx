@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated, Platform } from 'react-native';
 import { useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Platform } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../Navigation';
 
 import { Surface } from 'gl-react-expo';
@@ -12,7 +10,7 @@ import 'webgltexture-loader-expo-camera';
 import FilterCarousel from '../components/FilterCarousel';
 import { FilterType } from '../utils/filters';
 
-type CameraScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Camera'>;
+type CameraScreenNavigationProp = NavigationProp<RootStackParamList, 'Camera'>;
 
 // Define GLSL shaders for each filter
 const shaders = Shaders.create({
