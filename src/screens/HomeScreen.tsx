@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ActivityIndicator, Image, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
@@ -14,6 +14,15 @@ export default function HomeScreen() {
   const [showMagicModal, setShowMagicModal] = useState(false);
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicImageUrl, setMagicImageUrl] = useState<string | null>(null);
+  
+  // Settings modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  // Controls whether auto-login buttons are displayed on login screen
+  const [autoLoginEnabled, setAutoLoginEnabled] = useState(true);
+  // Controls whether password field is shown during authentication
+  const [passwordCheckEnabled, setPasswordCheckEnabled] = useState(true);
+  // Controls whether friend accept/reject functionality is enabled
+  const [friendActionsEnabled, setFriendActionsEnabled] = useState(true);
 
   const handleMagicPress = async () => {
     console.log('=== MAGIC SNAP START ===');
@@ -75,20 +84,12 @@ export default function HomeScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-          },
-        },
-      ]
-    );
+    setShowSettingsModal(true);
+  };
+  
+  const confirmLogout = async () => {
+    setShowSettingsModal(false);
+    await signOut();
   };
 
   return (
@@ -102,9 +103,8 @@ export default function HomeScreen() {
             <Text style={styles.avatarEmoji}>{user?.avatar_emoji || '😎'}</Text>
           </View>
         </TouchableOpacity>
-        <Text style={styles.title}>Snappy</Text>
         <TouchableOpacity 
-          style={styles.logoutButton}
+          style={styles.settingsButton}
           onPress={handleLogout}
         >
           <Text style={styles.logoutIcon}>⚡</Text>
@@ -169,6 +169,81 @@ export default function HomeScreen() {
               />
             ) : null}
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal
+        visible={showSettingsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSettingsModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSettingsModal(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalBox}
+          >
+            <Text style={styles.modalTitle}>Settings</Text>
+            
+            <View style={styles.settingsList}>
+              {/* Auto-login: Controls whether auto-login buttons are displayed */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Auto-Login</Text>
+                  <Text style={styles.settingDescription}>Show auto-login buttons on login screen</Text>
+                </View>
+                <Switch
+                  value={autoLoginEnabled}
+                  onValueChange={setAutoLoginEnabled}
+                  trackColor={{ false: '#333', true: '#FFFC00' }}
+                  thumbColor={autoLoginEnabled ? '#000' : '#666'}
+                  ios_backgroundColor="#333"
+                />
+              </View>
+              
+              {/* Password check: Controls whether password field is required */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Password Check</Text>
+                  <Text style={styles.settingDescription}>Require password for authentication</Text>
+                </View>
+                <Switch
+                  value={passwordCheckEnabled}
+                  onValueChange={setPasswordCheckEnabled}
+                  trackColor={{ false: '#333', true: '#FFFC00' }}
+                  thumbColor={passwordCheckEnabled ? '#000' : '#666'}
+                  ios_backgroundColor="#333"
+                />
+              </View>
+              
+              {/* Friend actions: Controls accept/reject functionality */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Friend Actions</Text>
+                  <Text style={styles.settingDescription}>Enable friend accept/reject features</Text>
+                </View>
+                <Switch
+                  value={friendActionsEnabled}
+                  onValueChange={setFriendActionsEnabled}
+                  trackColor={{ false: '#333', true: '#FFFC00' }}
+                  thumbColor={friendActionsEnabled ? '#000' : '#666'}
+                  ios_backgroundColor="#333"
+                />
+              </View>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={confirmLogout}
+            >
+              <Text style={styles.logoutButtonText}>Log Out</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>
@@ -258,7 +333,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   // avatarInfo removed
-  logoutButton: {
+  settingsButton: {
     width: 40,
     height: 40,
     backgroundColor: '#000',
@@ -305,5 +380,61 @@ const styles = StyleSheet.create({
   magicImage: {
     width: '100%',
     height: '100%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  settingsList: {
+    marginBottom: 24,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  settingDescription: {
+    fontSize: 12,
+    color: '#999',
+  },
+  logoutButton: {
+    backgroundColor: '#FFFC00',
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  logoutButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

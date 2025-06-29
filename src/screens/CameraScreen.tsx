@@ -37,7 +37,6 @@ export default function CameraScreen() {
   // Camera refs / state ------------------------------------------------------
   const cameraRef = useRef<CameraView>(null);
   const [facing, setFacing] = useState<'front' | 'back'>('back');
-  const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isRecording, setIsRecording] = useState(false);
   const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -86,45 +85,55 @@ export default function CameraScreen() {
     });
   };
 
-  const takePhoto = async () => {
-    try {
-      const photo = await cameraRef.current?.takePictureAsync();
-      if (photo?.uri) navigateToPreview(photo.uri, 'photo');
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'Could not take photo.');
-    }
-  };
-
-  const startVideo = async () => {
-    if (isRecording) return;
-    setIsRecording(true);
-
-    // Safety timeout (10 s max)
-    const to = setTimeout(() => stopVideo(), 10_000);
-    recordingTimeoutRef.current = to;
-
-    try {
-      const video = await cameraRef.current?.recordAsync({
-        maxDuration: 10,
-        quality: '720p',
-      });
-      if (video?.uri) navigateToPreview(video.uri, 'video');
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'Could not record video.');
-    } finally {
-      if (recordingTimeoutRef.current) {
-        clearTimeout(recordingTimeoutRef.current);
-        recordingTimeoutRef.current = null;
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const photo = await cameraRef.current.takePictureAsync();
+      if (!photo) {
+        console.error('Failed to take picture');
+        return;
       }
-      setIsRecording(false);
+      navigateToPreview(photo.uri, 'photo');
     }
   };
 
-  const stopVideo = () => {
-    if (!isRecording) return;
-    cameraRef.current?.stopRecording();
+  const startRecording = async () => {
+    if (cameraRef.current && !isRecording) {
+      try {
+        setIsRecording(true);
+        
+        // Set timeout to 15s (like palmer-test) instead of 10s
+        recordingTimeoutRef.current = setTimeout(() => {
+          console.log('Recording timeout - forcing stop');
+          setIsRecording(false);
+          if (cameraRef.current) {
+            cameraRef.current.stopRecording();
+          }
+        }, 15000);
+
+        const video = await cameraRef.current.recordAsync({
+          maxDuration: 10,
+        });
+        
+        // Clear timeout if recording completes
+        if (recordingTimeoutRef.current) {
+          clearTimeout(recordingTimeoutRef.current);
+        }
+        
+        if (video && video.uri) {
+          navigateToPreview(video.uri, 'video');
+        }
+      } catch (error) {
+        console.error('Recording error:', error);
+      } finally {
+        setIsRecording(false);
+      }
+    }
+  };
+
+  const stopRecording = () => {
+    if (cameraRef.current && isRecording) {
+      cameraRef.current.stopRecording();
+    }
   };
 
   // UI -----------------------------------------------------------------------
@@ -134,7 +143,7 @@ export default function CameraScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
-        flash={flash}
+        mode="video"
         videoQuality="720p"
       />
 
@@ -146,13 +155,6 @@ export default function CameraScreen() {
         >
           <Text style={styles.ctrlTxt}>✕</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.ctrlBtn}
-          onPress={() => setFlash(flash === 'off' ? 'on' : 'off')}
-        >
-          <Text style={styles.ctrlTxt}>{flash === 'off' ? '⚡' : '⚡️'}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Bottom controls */}
@@ -160,9 +162,13 @@ export default function CameraScreen() {
         {/* Stories button removed */}
 
         <Pressable
-          onPress={takePhoto}
-          onLongPress={startVideo}
-          onPressOut={stopVideo}
+          onPress={takePicture}
+          onLongPress={startRecording}
+          onPressOut={() => {
+            if (isRecording) {
+              stopRecording();
+            }
+          }}
           style={({ pressed }) => [
             styles.shutter,
             pressed && !isRecording && styles.shutterPressed,
@@ -173,9 +179,10 @@ export default function CameraScreen() {
         </Pressable>
 
         <TouchableOpacity
+          style={styles.flipBtn}
           onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
         >
-          <Text style={[styles.ctrlTxt, { opacity: 0.8 }]}>↻</Text>
+          <Text style={[styles.ctrlTxt, { opacity: 0.85 }]}>🔃</Text>
         </TouchableOpacity>
       </View>
 
@@ -225,17 +232,17 @@ const styles = StyleSheet.create({
   ctrlTxt: { color: '#fff', fontSize: 22 },
   bottomRow: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 80,              // raised higher
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center', // shutter centred
     alignItems: 'center',
   },
   smallTxt: { color: '#fff', fontSize: 16 },
   shutter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,              // 25 % larger
+    height: 100,
+    borderRadius: 50,
     borderWidth: 4,
     borderColor: '#fff',
     justifyContent: 'center',
@@ -243,7 +250,12 @@ const styles = StyleSheet.create({
   },
   shutterPressed: { opacity: 0.7 },
   shutterRecording: { borderColor: '#FF0000' },
-  shutterInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff' },
+  shutterInner: {
+    width: 75,
+    height: 75,
+    borderRadius: 37.5,
+    backgroundColor: '#fff'
+  },
   shutterInnerRec: { backgroundColor: '#FF0000' },
   recPill: {
     flexDirection: 'row',
@@ -264,4 +276,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   recTxt: { color: '#fff', fontWeight: '600' },
+  flipBtn: {
+    position: 'absolute',
+    right: 40,
+    bottom: 0,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

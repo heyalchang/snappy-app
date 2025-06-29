@@ -193,7 +193,7 @@ const runInstaGeneration = async () => {
       // Kick off an interval if none exists
       if (!pithyTimerRef.current) {
         pithyTimerRef.current = setInterval(() => {
-          setPithyIdx((prev) => (prev + 1) % PITHY_MESSAGES.length);
+          setPithyIdx(Math.floor(Math.random() * PITHY_MESSAGES.length));
         }, 3000 + Math.random() * 1000); // 3-4 s
       }
     } else {

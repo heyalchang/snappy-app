@@ -11,7 +11,7 @@ import {
   Platform,
   ActivityIndicator
 } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { Video, ResizeMode } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,14 +36,7 @@ export default function MediaPreviewScreen() {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
-  // Initialize video player for video playback
-  const player = useVideoPlayer(mediaType === 'video' ? mediaUri : null, player => {
-    if (mediaType === 'video') {
-      player.loop = true;
-      player.play();
-    }
-  });
+  const videoRef = React.useRef<Video>(null);
 
   const saveToGallery = async () => {
     try {
@@ -255,10 +248,13 @@ export default function MediaPreviewScreen() {
         {mediaType === 'photo' ? (
           <Image source={{ uri: mediaUri }} style={styles.media} />
         ) : (
-          <VideoView
+          <Video
+            ref={videoRef}
+            source={{ uri: mediaUri }}
             style={styles.media}
-            player={player}
-            contentFit="cover"
+            resizeMode={ResizeMode.COVER}
+            shouldPlay
+            isLooping
           />
         )}
 

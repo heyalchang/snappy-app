@@ -27,7 +27,7 @@
     "expo-gl-cpp": "^11.4.0",
     "expo-media-library": "~17.1.7",
     "expo-status-bar": "~2.2.3",
-    "expo-video": "~2.2.2",
+    "expo-av": "^15.1.6",
     "gl-react": "^5.2.0",
     "gl-react-expo": "^5.2.1",
     "react": "19.0.0",

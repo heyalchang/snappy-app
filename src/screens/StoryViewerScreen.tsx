@@ -19,7 +19,7 @@ import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { Video, ResizeMode } from 'expo-av';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'StoryViewer'>;
 type RouteTypeProp = RouteProp<RootStackParamList, 'StoryViewer'>;
@@ -75,7 +75,7 @@ export default function StoryViewerScreen() {
   
   const progressAnimation = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
-  const videoPlayer = useVideoPlayer(null);
+  const videoRef = useRef<Video>(null);
   
   useEffect(() => {
     loadStories();
@@ -185,12 +185,8 @@ export default function StoryViewerScreen() {
   };
 
   const handleTap = (event: any) => {
-    const { locationX } = event.nativeEvent;
-    if (locationX < screenWidth / 2) {
-      goToPrevious();
-    } else {
-      goToNext();
-    }
+    // Tap anywhere to advance to next story
+    goToNext();
   };
 
   const panResponder = useRef(
@@ -297,10 +293,13 @@ export default function StoryViewerScreen() {
               resizeMode="cover"
             />
           ) : (
-            <VideoView
+            <Video
+              ref={videoRef}
+              source={{ uri: currentStory.media_url }}
               style={styles.media}
-              player={videoPlayer}
-              contentFit="cover"
+              resizeMode={ResizeMode.COVER}
+              shouldPlay
+              isLooping
             />
           )}
 

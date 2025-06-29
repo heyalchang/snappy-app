@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -40,14 +40,7 @@ export default function SnapViewScreen() {
   const [countdown, setCountdown] = useState(0);
   const countdownInterval = useRef<NodeJS.Timeout | null>(null);
   const viewStartTime = useRef<number>(0);
-
-  // Initialize video player
-  const player = useVideoPlayer(snap?.media_type === 'video' ? snap.media_url : null, player => {
-    if (snap?.media_type === 'video') {
-      player.loop = false;
-      player.play();
-    }
-  });
+  const videoRef = useRef<Video>(null);
 
   useEffect(() => {
     loadSnap();
@@ -193,10 +186,13 @@ export default function SnapViewScreen() {
             {snap.media_type === 'photo' ? (
               <Image source={{ uri: snap.media_url }} style={styles.media} />
             ) : (
-              <VideoView
+              <Video
+                ref={videoRef}
+                source={{ uri: snap.media_url }}
                 style={styles.media}
-                player={player}
-                contentFit="cover"
+                resizeMode={ResizeMode.COVER}
+                shouldPlay
+                isLooping={false}
               />
             )}
             
