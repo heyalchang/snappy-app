@@ -8,13 +8,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Modal, // Add Modal import
+  Switch // Add Switch import
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
 import { signIn, signUp } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { useFeatureFlags } from '../contexts/FeatureFlagsContext'; // Change 1: Add useFeatureFlags import
 
 type AuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Auth'>;
 
@@ -27,6 +30,13 @@ export default function AuthScreen({ navigation }: Props) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn: authSignIn } = useAuth();
+  const { // Change 2: Add feature flag states
+    autoLoginEnabled,
+    passwordCheckEnabled,
+    setFlag,
+  } = useFeatureFlags();
+  const [showSettingsModal, setShowSettingsModal] = useState(false); // Change 2: Add showSettingsModal state
+  const [password, setPassword] = useState(''); // Change 2: Add password state
 
   const autoLogin = async (testUsername: string) => {
     setIsLoading(true);
@@ -76,17 +86,21 @@ export default function AuthScreen({ navigation }: Props) {
       Alert.alert('Error', 'Please enter a username');
       return;
     }
+    if (passwordCheckEnabled && !password.trim()) {
+      Alert.alert('Error', 'Please enter a password');
+      return;
+    }
 
     setIsLoading(true);
     try {
       if (isSignUp) {
-        // Sign up with username only
-        await signUp(username.trim());
+        // Sign up with username and optional password
+        await signUp(username.trim(), passwordCheckEnabled ? password.trim() : undefined); // Change 7: Pass password to signUp
         // Navigate to Username screen before signing in
         navigation.navigate('Username', { username: username.trim() });
       } else {
-        // Sign in with username only
-        await authSignIn(username.trim());
+        // Sign in with username and optional password
+        await authSignIn(username.trim(), passwordCheckEnabled ? password.trim() : undefined); // Change 7: Pass password to authSignIn
         // Navigation will automatically switch to authenticated stack
       }
     } catch (error: any) {
@@ -111,6 +125,13 @@ export default function AuthScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>Share moments that disappear</Text>
         </View>
         
+        {/* Change 3: Add gear button JSX after Logo block */}
+        <View style={{ position: 'absolute', top: 60, right: 30 }}>
+          <TouchableOpacity onPress={() => setShowSettingsModal(true)}>
+            <Text style={{ fontSize: 24 }}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+        
         <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
@@ -121,6 +142,19 @@ export default function AuthScreen({ navigation }: Props) {
           autoCorrect={false}
           editable={!isLoading}
         />
+        
+        {/* Change 4: Add password TextInput inside formContainer, below username input */}
+        {passwordCheckEnabled && (
+          <TextInput
+            style={[styles.input, { marginTop: 10 }]}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            autoCapitalize="none"
+            secureTextEntry
+            editable={!isLoading}
+          />
+        )}
         
         <TouchableOpacity 
           style={[styles.mainButton, isLoading && styles.disabledButton]}
@@ -142,6 +176,7 @@ export default function AuthScreen({ navigation }: Props) {
         </View>
 
         {/* Developer Tools */}
+        {autoLoginEnabled && (
         <View style={styles.devToolsContainer}>
           <Text style={styles.devToolsTitle}>Developer Tools</Text>
           
@@ -181,7 +216,83 @@ export default function AuthScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         </View>
+        )}
       </ScrollView>
+
+      {/* Change 8: Add modal JSX at bottom, before closing main component */}
+      <Modal
+        visible={showSettingsModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSettingsModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSettingsModal(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Settings</Text>
+
+            <View style={styles.settingsList}>
+              {/* Auto-login */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Auto-Login</Text>
+                  <Text style={styles.settingDescription}>
+                    Show auto-login buttons on login screen
+                  </Text>
+                </View>
+                <Switch
+                  value={autoLoginEnabled}
+                  onValueChange={(v) => setFlag('autoLoginEnabled', v)}
+                  trackColor={{ false: '#333', true: '#FFFC00' }}
+                  thumbColor={autoLoginEnabled ? '#000' : '#666'}
+                  ios_backgroundColor="#333"
+                />
+              </View>
+
+              {/* Bypass Password */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Bypass Password</Text>
+                  <Text style={styles.settingDescription}>
+                    Allow sign-in / sign-up without entering a password
+                  </Text>
+                </View>
+                <Switch
+                  value={!passwordCheckEnabled}
+                  onValueChange={(v) => setFlag('passwordCheckEnabled', !v)}
+                  trackColor={{ false: '#333', true: '#FFFC00' }}
+                  thumbColor={!passwordCheckEnabled ? '#000' : '#666'}
+                  ios_backgroundColor="#333"
+                />
+              </View>
+
+              {/* Friend Actions toggle (placeholder) */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Friend Actions</Text>
+                  <Text style={styles.settingDescription}>
+                    Enable friend accept/reject features
+                  </Text>
+                </View>
+                <Switch
+                  value={false}
+                  disabled
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={() => setShowSettingsModal(false)}
+            >
+              <Text style={styles.logoutButtonText}>Close</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -289,5 +400,72 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#000',
     fontWeight: '500',
+  },
+  // Styles for Modal (Change 8)
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '90%',
+    backgroundColor: '#000', // Changed to black for consistency with Snap theme
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFC00', // Yellow
+    marginBottom: 20,
+  },
+  settingsList: {
+    width: '100%',
+    marginBottom: 30,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 15,
+  },
+  settingLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  settingDescription: {
+    fontSize: 13,
+    color: '#BBB',
+    marginTop: 4,
+  },
+  logoutButton: {
+    backgroundColor: '#FF0049', // Red
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    width: '100%',
+  },
+  logoutButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

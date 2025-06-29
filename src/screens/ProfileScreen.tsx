@@ -143,11 +143,11 @@ export default function ProfileScreen({ navigation }: Props) {
         <View
           style={[
             styles.avatarContainer,
-            { backgroundColor: user?.avatar_color || '#FFB6C1' }
+            { backgroundColor: user?.avatarColor || '#FFB6C1' }
           ]}
         >
           <Text style={styles.avatarEmoji}>
-            {user?.avatar_emoji || '😎'}
+            {user?.avatarEmoji || '😎'}
           </Text>
         </View>
         

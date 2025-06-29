@@ -5,7 +5,7 @@ import { AuthUser, getCurrentUser, signIn as authSignIn, signOut as authSignOut 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  signIn: (username: string) => Promise<void>;
+  signIn: (username: string, password?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (username: string) => {
-    const authUser = await authSignIn(username);
+  const signIn = async (username: string, password?: string) => {
+    const authUser = await authSignIn(username, password);
     setUser(authUser);
   };
 

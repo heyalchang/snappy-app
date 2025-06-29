@@ -182,7 +182,7 @@ export default function CameraScreen() {
           style={styles.flipBtn}
           onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
         >
-          <Text style={[styles.ctrlTxt, { opacity: 0.85 }]}>🔃</Text>
+          <Text style={[styles.ctrlTxt, { opacity: 0.85, transform: [{ rotate: '-90deg' }] }]}>🔃</Text>
         </TouchableOpacity>
       </View>
 

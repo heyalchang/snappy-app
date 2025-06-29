@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
 
 type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
@@ -15,14 +16,20 @@ export default function HomeScreen() {
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicImageUrl, setMagicImageUrl] = useState<string | null>(null);
   
-  // Settings modal state
+  // Debug: Log user avatar data
+  console.log('Current user avatar:', {
+    username: user?.username,
+    emoji: user?.avatarEmoji,
+    color: user?.avatarColor
+  });
+  
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  // Controls whether auto-login buttons are displayed on login screen
-  const [autoLoginEnabled, setAutoLoginEnabled] = useState(true);
-  // Controls whether password field is shown during authentication
-  const [passwordCheckEnabled, setPasswordCheckEnabled] = useState(true);
-  // Controls whether friend accept/reject functionality is enabled
-  const [friendActionsEnabled, setFriendActionsEnabled] = useState(true);
+  const {
+    autoLoginEnabled,
+    passwordCheckEnabled,
+    friendActionsEnabled,
+    setFlag,
+  } = useFeatureFlags();
 
   const handleMagicPress = async () => {
     console.log('=== MAGIC SNAP START ===');
@@ -99,15 +106,14 @@ export default function HomeScreen() {
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile')}
         >
-          <View style={[styles.avatarCircle, { backgroundColor: user?.avatar_color || '#FFB6C1' }]}>
-            <Text style={styles.avatarEmoji}>{user?.avatar_emoji || '😎'}</Text>
+          <View style={[styles.avatarCircle, { backgroundColor: user?.avatarColor || '#FFB6C1' }]}>
+            <Text style={styles.avatarEmoji}>{user?.avatarEmoji || '😎'}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={styles.settingsButton}
           onPress={handleLogout}
         >
-          <Text style={styles.logoutIcon}>⚡</Text>
+          <Text style={{ fontSize: 24 }}>⚙️</Text>
         </TouchableOpacity>
       </View>
       
@@ -199,24 +205,27 @@ export default function HomeScreen() {
                 </View>
                 <Switch
                   value={autoLoginEnabled}
-                  onValueChange={setAutoLoginEnabled}
+                  onValueChange={(v) => setFlag('autoLoginEnabled', v)}
                   trackColor={{ false: '#333', true: '#FFFC00' }}
                   thumbColor={autoLoginEnabled ? '#000' : '#666'}
                   ios_backgroundColor="#333"
                 />
               </View>
               
-              {/* Password check: Controls whether password field is required */}
+              {/* Bypass Password */}
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Password Check</Text>
-                  <Text style={styles.settingDescription}>Require password for authentication</Text>
+                  <Text style={styles.settingLabel}>Bypass Password</Text>
+                  <Text style={styles.settingDescription}>
+                    Allow sign-in / sign-up without entering a password
+                  </Text>
                 </View>
                 <Switch
-                  value={passwordCheckEnabled}
-                  onValueChange={setPasswordCheckEnabled}
+                  // When ON we bypass password → passwordCheckEnabled becomes false
+                  value={!passwordCheckEnabled}
+                  onValueChange={(v) => setFlag('passwordCheckEnabled', !v)}
                   trackColor={{ false: '#333', true: '#FFFC00' }}
-                  thumbColor={passwordCheckEnabled ? '#000' : '#666'}
+                  thumbColor={!passwordCheckEnabled ? '#000' : '#666'}
                   ios_backgroundColor="#333"
                 />
               </View>
@@ -229,7 +238,7 @@ export default function HomeScreen() {
                 </View>
                 <Switch
                   value={friendActionsEnabled}
-                  onValueChange={setFriendActionsEnabled}
+                  onValueChange={(v) => setFlag('friendActionsEnabled', v)}
                   trackColor={{ false: '#333', true: '#FFFC00' }}
                   thumbColor={friendActionsEnabled ? '#000' : '#666'}
                   ios_backgroundColor="#333"
@@ -333,24 +342,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   // avatarInfo removed
-  settingsButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#000',
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  logoutIcon: {
-    fontSize: 20,
-    color: '#FFFC00',
-    transform: [{ rotate: '90deg' }],
-  },
   magicButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     width: 50,

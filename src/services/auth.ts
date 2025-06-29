@@ -33,7 +33,7 @@ function generateAvatar(username: string): { emoji: string; color: string } {
   };
 }
 
-export async function signUp(username: string): Promise<AuthUser> {
+export async function signUp(username: string, password?: string): Promise<AuthUser> {
   try {
     // Check if username already exists
     const { data: existingUser } = await supabase
@@ -50,7 +50,7 @@ export async function signUp(username: string): Promise<AuthUser> {
     const email = `${username.toLowerCase()}@nulldomain.com`;
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
-      password: DEFAULT_PASSWORD,
+      password: password || DEFAULT_PASSWORD,
     });
 
     if (authError) throw authError;
@@ -89,12 +89,12 @@ export async function signUp(username: string): Promise<AuthUser> {
   }
 }
 
-export async function signIn(username: string): Promise<AuthUser> {
+export async function signIn(username: string, password?: string): Promise<AuthUser> {
   try {
     const email = `${username.toLowerCase()}@nulldomain.com`;
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
-      password: DEFAULT_PASSWORD,
+      password: password || DEFAULT_PASSWORD,
     });
 
     if (authError) throw authError;
@@ -139,17 +139,46 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       .eq('id', user.id)
       .single();
 
-    if (error || !userData) return null;
+    if (error || !userData) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
 
-    return {
+    console.log('Raw userData from database:', userData);
+
+    // If user doesn't have avatar data, generate it
+    let avatarEmoji = userData.avatar_emoji;
+    let avatarColor = userData.avatar_color;
+    
+    if (!avatarEmoji || !avatarColor) {
+      console.log('Missing avatar data, generating for user:', userData.username);
+      const avatar = generateAvatar(userData.username);
+      avatarEmoji = avatar.emoji;
+      avatarColor = avatar.color;
+      
+      // Update the database with the generated avatar
+      await supabase
+        .from('profiles')
+        .update({
+          avatar_emoji: avatarEmoji,
+          avatar_color: avatarColor,
+        })
+        .eq('id', userData.id);
+    }
+
+    const authUser = {
       id: userData.id,
       username: userData.username,
       displayName: userData.display_name || userData.username,
-      avatarEmoji: userData.avatar_emoji,
-      avatarColor: userData.avatar_color,
+      avatarEmoji: avatarEmoji,
+      avatarColor: avatarColor,
       avatarUrl: userData.avatar_url,
       snapScore: userData.snap_score || 0,
     };
+
+    console.log('Mapped AuthUser:', authUser);
+
+    return authUser;
   } catch {
     return null;
   }

@@ -387,7 +387,7 @@ const runInstaGeneration = async () => {
         style={styles.instaFab}
         onPress={startInstaFlow}
       >
-        <Text style={{ fontSize: 28, color: '#000' }}>📸</Text>
+        <Text style={{ fontSize: 28, color: '#000' }}>✨</Text>
       </TouchableOpacity>
 
       <Modal

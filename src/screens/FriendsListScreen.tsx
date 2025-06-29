@@ -181,12 +181,7 @@ export default function FriendsListScreen({ navigation }: Props) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
+          <View style={{ width: 40 }} />
           <Text style={styles.title}>My Friends</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -200,12 +195,7 @@ export default function FriendsListScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
         <Text style={styles.title}>My Friends</Text>
         <TouchableOpacity
           style={styles.addButton}
@@ -259,16 +249,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#111',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 24,
   },
   title: {
     color: '#fff',

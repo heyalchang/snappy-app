@@ -8,14 +8,17 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Navigation from './Navigation';
 import { AuthProvider } from './contexts/AuthContext';
+import { FeatureFlagsProvider } from './contexts/FeatureFlagsContext';
 
 export default function App(): React.JSX.Element {
   return (
-    <AuthProvider>
-      <SafeAreaProvider>
-        <Navigation />
-        <StatusBar style="auto" />
-      </SafeAreaProvider>
-    </AuthProvider>
+    <FeatureFlagsProvider>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <Navigation />
+          <StatusBar style="auto" />
+        </SafeAreaProvider>
+      </AuthProvider>
+    </FeatureFlagsProvider>
   );
 }
