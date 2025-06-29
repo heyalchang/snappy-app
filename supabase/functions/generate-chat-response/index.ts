@@ -22,6 +22,8 @@ interface RequestBody {
 }
 
 serve(async (req) => {
+  console.log(`[${new Date().toISOString()}] Incoming request: ${req.method}`)
+  
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -30,10 +32,16 @@ serve(async (req) => {
   try {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openAIApiKey) {
+      console.error('[ERROR] Missing OPENAI_API_KEY environment variable')
       throw new Error('Missing OPENAI_API_KEY')
     }
 
     const body: RequestBody = await req.json()
+    console.log('[REQUEST] Processing chat for:', {
+      sender: body.senderName,
+      recipient: body.recipientName,
+      messageCount: body.messageThread.length
+    })
     const {
       senderName,
       senderPersona,
@@ -51,6 +59,13 @@ serve(async (req) => {
       .map(msg => `${msg.sender}: ${msg.content}`)
       .join('\n')
 
+    console.log('[PERSONA] Recipient info:', {
+      name: recipientName,
+      age: recipientAge,
+      hasPersona: !!recipientPersona,
+      hasGoals: !!recipientGoals
+    })
+
     // Create prompt for GPT-4-mini
     const prompt = `You are ${recipientName}, a ${recipientAge}-year-old with this background: ${recipientPersona}
 
@@ -63,6 +78,9 @@ ${messageHistory}
 
 Respond naturally as ${recipientName} in ONE SHORT SENTENCE (under 15 words). Be authentic to your persona and age. Keep it casual and conversational.`
 
+    console.log('[OPENAI] Sending request to GPT-4o-mini')
+    const startTime = Date.now()
+    
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -87,13 +105,24 @@ Respond naturally as ${recipientName} in ONE SHORT SENTENCE (under 15 words). Be
       }),
     })
 
+    const responseTime = Date.now() - startTime
+    console.log(`[OPENAI] Response received in ${responseTime}ms, status: ${response.status}`)
+
     if (!response.ok) {
       const error = await response.text()
+      console.error('[OPENAI] API error:', error)
       throw new Error(`OpenAI API error: ${error}`)
     }
 
     const data = await response.json()
     const aiResponse = data.choices[0].message.content.trim()
+    
+    console.log('[SUCCESS] Generated response:', {
+      response: aiResponse,
+      length: aiResponse.length,
+      model: data.model,
+      usage: data.usage
+    })
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
@@ -103,7 +132,11 @@ Respond naturally as ${recipientName} in ONE SHORT SENTENCE (under 15 words). Be
       }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('[ERROR] Function failed:', {
+      error: error.message,
+      stack: error.stack,
+      type: error.constructor.name
+    })
     
     // Fallback responses if AI fails
     const fallbacks = [
@@ -118,6 +151,7 @@ Respond naturally as ${recipientName} in ONE SHORT SENTENCE (under 15 words). Be
     ]
     
     const fallbackResponse = fallbacks[Math.floor(Math.random() * fallbacks.length)]
+    console.log('[FALLBACK] Using fallback response:', fallbackResponse)
     
     return new Response(
       JSON.stringify({ 

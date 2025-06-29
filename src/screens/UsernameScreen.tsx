@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../Navigation';
@@ -18,11 +18,18 @@ interface Props {
 export default function UsernameScreen({ navigation, route }: Props) {
   const [displayName, setDisplayName] = useState('');
   const [age, setAge] = useState('');
+  const [influencerFocus, setInfluencerFocus] = useState<'food' | 'fitness' | 'travel' | 'mom' | 'ai' | ''>('');
+  const [blogUrl, setBlogUrl] = useState('');
+  const [bio, setBio] = useState('');
   const [generatingPersona, setGeneratingPersona] = useState(false);
   const { signIn } = useAuth();
   const username = route.params.username;
 
-  const generateInitialPersona = async (userName: string, userAge: number): Promise<{
+  const generateInitialPersona = async (
+    userName: string, 
+    userAge: number,
+    focus?: 'food' | 'fitness' | 'travel' | 'mom' | 'ai'
+  ): Promise<{
     persona: string;
     messaging_goals: string;
   }> => {
@@ -69,9 +76,33 @@ export default function UsernameScreen({ navigation, route }: Props) {
     const hobbies = ["cooking", "reading", "gaming", "hiking", "photography", "dancing", "coding"];
     const randomHobby = hobbies[Math.floor(Math.random() * hobbies.length)];
     
-    const persona = `${userName} is a ${userAge}-year-old who ${randomTrait}. They enjoy ${randomHobby} in their free time and value authentic connections with friends.`;
+    let focusAddition = "";
+    let focusGoals = "";
     
-    return { persona, messaging_goals: goals };
+    if (focus) {
+      const focusTraits = {
+        food: "shares amazing recipes and food discoveries",
+        fitness: "motivates others with workout tips and healthy lifestyle content",
+        travel: "captures stunning destinations and travel experiences",
+        mom: "shares parenting wisdom and family moments",
+        ai: "explores cutting-edge AI trends and tech innovations"
+      };
+      
+      const focusMessaging = {
+        food: "Share recipes, food recommendations, and culinary experiences. Be enthusiastic about flavors and cooking techniques.",
+        fitness: "Encourage healthy habits, share workout tips, and celebrate fitness achievements. Be motivating and supportive.",
+        travel: "Share travel stories, destination tips, and cultural experiences. Be adventurous and descriptive.",
+        mom: "Share parenting tips, family moments, and relatable experiences. Be warm, supportive, and understanding.",
+        ai: "Share AI insights, tech trends, and innovation discussions. Be informative and forward-thinking."
+      };
+      
+      focusAddition = ` As a ${focus} influencer, they ${focusTraits[focus]}`;
+      focusGoals = ` ${focusMessaging[focus]}`;
+    }
+    
+    const persona = `${userName} is a ${userAge}-year-old who ${randomTrait}. They enjoy ${randomHobby} in their free time and value authentic connections with friends${focusAddition}.`;
+    
+    return { persona, messaging_goals: goals + focusGoals };
   };
 
   const handleComplete = async () => {
@@ -90,7 +121,8 @@ export default function UsernameScreen({ navigation, route }: Props) {
       // Generate initial persona
       const { persona, messaging_goals } = await generateInitialPersona(
         displayName.trim() || username,
-        userAge
+        userAge,
+        influencerFocus || undefined
       );
       
       // Then get the current user to update profile
@@ -104,6 +136,18 @@ export default function UsernameScreen({ navigation, route }: Props) {
         
         if (displayName.trim()) {
           updates.display_name = displayName.trim();
+        }
+        
+        if (influencerFocus) {
+          updates.influencer_focus = influencerFocus;
+        }
+        
+        if (blogUrl.trim()) {
+          updates.blog_url = blogUrl.trim();
+        }
+        
+        if (bio.trim()) {
+          updates.bio = bio.trim();
         }
         
         const { error } = await supabase
@@ -132,7 +176,7 @@ export default function UsernameScreen({ navigation, route }: Props) {
         <Text style={styles.backText}>←</Text>
       </TouchableOpacity>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Create your profile</Text>
         <Text style={styles.subtitle}>
           Choose a username and display name
@@ -171,6 +215,55 @@ export default function UsernameScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Content Focus (Optional)</Text>
+          <View style={styles.focusButtons}>
+            {(['food', 'fitness', 'travel', 'mom', 'ai'] as const).map((focus) => (
+              <TouchableOpacity
+                key={focus}
+                style={[
+                  styles.focusButton,
+                  influencerFocus === focus && styles.focusButtonActive
+                ]}
+                onPress={() => setInfluencerFocus(influencerFocus === focus ? '' : focus)}
+              >
+                <Text style={[
+                  styles.focusButtonText,
+                  influencerFocus === focus && styles.focusButtonTextActive
+                ]}>
+                  {focus.charAt(0).toUpperCase() + focus.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Blog/Social URL (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="https://myblog.com"
+            value={blogUrl}
+            onChangeText={setBlogUrl}
+            autoCapitalize="none"
+            keyboardType="url"
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Bio (Optional)</Text>
+          <TextInput
+            style={[styles.input, styles.bioInput]}
+            placeholder="Tell us about yourself..."
+            value={bio}
+            onChangeText={(text) => setBio(text.slice(0, 160))}
+            multiline
+            numberOfLines={3}
+            maxLength={160}
+          />
+          <Text style={styles.charCount}>{bio.length}/160</Text>
+        </View>
+
         <TouchableOpacity
           style={[styles.completeButton, generatingPersona && styles.disabledButton]}
           onPress={handleComplete}
@@ -182,7 +275,7 @@ export default function UsernameScreen({ navigation, route }: Props) {
             <Text style={styles.completeText}>Complete Setup</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -206,6 +299,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 40,
     paddingTop: 120,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 24,
@@ -250,5 +344,42 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  focusButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  focusButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#DDD',
+    backgroundColor: '#FFF',
+  },
+  focusButtonActive: {
+    borderColor: '#2196F3',
+    backgroundColor: '#E3F2FD',
+  },
+  focusButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  focusButtonTextActive: {
+    color: '#2196F3',
+  },
+  bioInput: {
+    height: 80,
+    textAlignVertical: 'top',
+    paddingTop: 10,
+  },
+  charCount: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 5,
   },
 });

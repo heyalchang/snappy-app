@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Linking,
+  ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../Navigation';
@@ -24,6 +26,10 @@ interface ProfileData {
   persona?: string | null;
   age?: number | null;
   messaging_goals?: string | null;
+  influencer_focus?: string | null;
+  blog_url?: string | null;
+  bio?: string | null;
+  follower_count?: number | null;
 }
 
 export default function ProfileScreen({ navigation }: Props) {
@@ -56,7 +62,7 @@ export default function ProfileScreen({ navigation }: Props) {
       // Get snap score and persona data from profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('snap_score, persona, age, messaging_goals')
+        .select('snap_score, persona, age, messaging_goals, influencer_focus, blog_url, bio, follower_count')
         .eq('id', user.id)
         .single();
 
@@ -76,6 +82,10 @@ export default function ProfileScreen({ navigation }: Props) {
         persona: profile?.persona,
         age: profile?.age,
         messaging_goals: profile?.messaging_goals,
+        influencer_focus: profile?.influencer_focus,
+        blog_url: profile?.blog_url,
+        bio: profile?.bio,
+        follower_count: profile?.follower_count,
       });
     } catch (error) {
       console.error('Error loading profile stats:', error);
@@ -121,6 +131,8 @@ export default function ProfileScreen({ navigation }: Props) {
         <Text style={styles.title}>Profile</Text>
         <View style={{ width: 40 }} />
       </View>
+      
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
 
       <View style={styles.profileSection}>
         <View
@@ -141,13 +153,40 @@ export default function ProfileScreen({ navigation }: Props) {
         {profileData.age && (
           <Text style={styles.ageText}>Age {profileData.age}</Text>
         )}
+        {profileData.influencer_focus && (
+          <View style={styles.focusBadge}>
+            <Text style={styles.focusBadgeText}>
+              {profileData.influencer_focus.charAt(0).toUpperCase() + profileData.influencer_focus.slice(1)} Creator
+            </Text>
+          </View>
+        )}
+        {profileData.follower_count !== null && profileData.follower_count > 0 && (
+          <Text style={styles.followerCount}>
+            {profileData.follower_count.toLocaleString()} followers
+          </Text>
+        )}
       </View>
+      
+      {profileData.bio && (
+        <View style={styles.bioContainer}>
+          <Text style={styles.bioText}>{profileData.bio}</Text>
+        </View>
+      )}
       
       {profileData.persona && (
         <View style={styles.personaContainer}>
           <Text style={styles.personaTitle}>About Me</Text>
           <Text style={styles.personaText}>{profileData.persona}</Text>
         </View>
+      )}
+      
+      {profileData.blog_url && (
+        <TouchableOpacity 
+          style={styles.blogButton}
+          onPress={() => Linking.openURL(profileData.blog_url!)}
+        >
+          <Text style={styles.blogButtonText}>🌐 Visit My Blog</Text>
+        </TouchableOpacity>
       )}
 
       <View style={styles.statsContainer}>
@@ -189,6 +228,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
+      </ScrollView>
     </View>
   );
 }
@@ -197,6 +237,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  scrollContainer: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -320,6 +363,52 @@ const styles = StyleSheet.create({
   },
   signOutButtonText: {
     color: '#ff4444',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  focusBadge: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  focusBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  followerCount: {
+    color: '#FFFC00',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  bioContainer: {
+    marginHorizontal: 20,
+    marginBottom: 15,
+    padding: 15,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FFFC00',
+  },
+  bioText: {
+    color: '#fff',
+    fontSize: 15,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  blogButton: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#2196F3',
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  blogButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
