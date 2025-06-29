@@ -11,7 +11,7 @@
  *
  * Response: { text: string }
  *
- * The function asks GPT-3.5-turbo to return ONE plain-text block in the exact
+ * The function asks GPT-4.1 to return ONE plain-text block in the exact
  * format required by our image model:
  *
  *   Instagram Influencer Post. Description: <description>
@@ -25,8 +25,12 @@ import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import OpenAI from "https://deno.land/x/openai@1.4.0/mod.ts";
 
 const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY"),
+  apiKey: Deno.env.get("OPENAI_API_KEY") ?? "",
 });
+
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
+const GEMINI_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +45,33 @@ interface ReqBody {
   display_name?: string;
 }
 
+async function callGemini(prompt: string): Promise<string> {
+  if (!GOOGLE_API_KEY) {
+    throw new Error("GOOGLE_API_KEY not set");
+  }
+  const res = await fetch(`${GEMINI_URL}?key=${GOOGLE_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini error ${res.status}: ${err}`);
+  }
+
+  const json = await res.json();
+  const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini returned empty response");
+  return text.trim();
+}
+
 serve(async (req) => {
   // CORS pre-flight
   if (req.method === "OPTIONS") {
@@ -48,11 +79,13 @@ serve(async (req) => {
   }
 
   try {
-    const body: ReqBody = await req.json();
+    const body: ReqBody & { use_gemini?: boolean } = await req.json();
     const keyword = (body.prompt ?? "").trim();
     if (!keyword) {
       throw new Error("Missing prompt");
     }
+
+    const useGemini = body.use_gemini === true;
 
     const focus = (body.influencer_focus ?? "lifestyle").trim();
     const name = body.display_name || body.username || "Creator";
@@ -61,6 +94,7 @@ serve(async (req) => {
       prompt: keyword,
       influencer_focus: focus,
       name,
+      use_gemini: useGemini,
     });
 
     const systemPrompt =
@@ -78,19 +112,30 @@ serve(async (req) => {
       `Generate the text in the required format.`;
 
     const start = Date.now();
-    const chatRes = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      temperature: 0.7,
-      max_tokens: 120,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    let rawText = "";
+    if (useGemini) {
+      rawText = await callGemini(`${systemPrompt}\n\n${userPrompt}`);
+    } else {
+      const chatRes = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        temperature: 0.7,
+        max_tokens: 120,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      rawText = chatRes.choices[0]?.message?.content?.trim() || "";
+    }
     const duration = Date.now() - start;
-    const rawText = chatRes.choices[0]?.message?.content?.trim() || "";
 
-    console.log("[generate-story-post] OpenAI latency:", duration, "ms");
+    console.log(
+      `[generate-story-post] LLM latency (${
+        useGemini ? "Gemini" : "OpenAI"
+      }):`,
+      duration,
+      "ms",
+    );
     console.log("[generate-story-post] Raw response:\n", rawText);
 
     // Very light validation: must contain both markers

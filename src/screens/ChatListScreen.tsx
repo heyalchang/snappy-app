@@ -27,7 +27,14 @@ export default function ChatListScreen() {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const loadChatRooms = useCallback(async () => {
-    if (!user) return;
+    // If the user object isn’t ready, immediately clear the loading states
+    // so the spinner doesn’t hang forever. The hook will run again once the
+    // Auth context provides a user.
+    if (!user) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     try {
       const rooms = await getChatRooms(user.id);
@@ -42,7 +49,7 @@ export default function ChatListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
+      // Load chat rooms when screen comes into focus, but don't show spinner
       loadChatRooms();
     }, [loadChatRooms])
   );

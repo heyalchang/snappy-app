@@ -112,8 +112,13 @@ export default function HomeScreen() {
       </View>
       
       <View style={styles.content}>
-        <Text style={styles.welcomeText}>Welcome, {user?.displayName || user?.username}!</Text>
-        
+        <Text style={styles.welcomeText}>
+          Welcome, {user?.displayName || user?.username}!
+        </Text>
+        {!!user?.displayName && (
+          <Text style={styles.usernameText}>@{user.username}</Text>
+        )}
+
         <TouchableOpacity
           style={styles.cameraButton}
           onPress={() => navigation.navigate('Camera')}
@@ -124,9 +129,6 @@ export default function HomeScreen() {
 
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>Snap Score: {user?.snapScore || 0}</Text>
-          <Text style={styles.avatarInfo}>
-            {user?.avatarEmoji} {user?.avatarColor}
-          </Text>
         </View>
         
         {/* Magic sparkle button - temporary */}
@@ -218,6 +220,12 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     textAlign: 'center',
   },
+  usernameText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: -8,
+    marginBottom: 30,
+  },
   cameraButton: {
     backgroundColor: '#FFF',
     width: 200,
@@ -249,9 +257,7 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
   },
-  avatarInfo: {
-    fontSize: 24,
-  },
+  // avatarInfo removed
   logoutButton: {
     width: 40,
     height: 40,

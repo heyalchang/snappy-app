@@ -12,7 +12,7 @@ export default function VibeOverlay({
   result,
   anchorY,
   onDismiss,
-  autoHideMs = 3000, // quicker auto-dismiss
+  autoHideMs = 5000, // 5-second auto-dismiss
 }: Props) {
   useEffect(() => {
     const to = setTimeout(onDismiss, autoHideMs);

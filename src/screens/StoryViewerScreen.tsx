@@ -60,7 +60,9 @@ export default function StoryViewerScreen() {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Stories' as never);
+      // Root navigator lacks a direct "Stories" screen;
+      // switch to the Stories tab inside MainTabs instead.
+      navigation.navigate('MainTabs' as never, { screen: 'Stories' } as never);
     }
   };
   const { userId, initialStoryIndex = 0 } = route.params;

@@ -157,15 +157,7 @@ export default function CameraScreen() {
 
       {/* Bottom controls */}
       <View style={styles.bottomRow}>
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('MainTabs', {
-              screen: 'Stories',
-            } as any)
-          }
-        >
-          <Text style={styles.smallTxt}>Stories</Text>
-        </TouchableOpacity>
+        {/* Stories button removed */}
 
         <Pressable
           onPress={takePhoto}
@@ -180,8 +172,10 @@ export default function CameraScreen() {
           <View style={[styles.shutterInner, isRecording && styles.shutterInnerRec]} />
         </Pressable>
 
-        <TouchableOpacity onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}>
-          <Text style={styles.ctrlTxt}>🔄</Text>
+        <TouchableOpacity
+          onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}
+        >
+          <Text style={[styles.ctrlTxt, { opacity: 0.8 }]}>↻</Text>
         </TouchableOpacity>
       </View>
 

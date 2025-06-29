@@ -26,7 +26,7 @@ serve(async (req) => {
         {
           role: 'system',
           content:
-            'You are an expert in social dynamics and dating psychology. Return ONLY valid JSON with keys tone, inferred_meaning, key_phrase.',
+            'You are an expert in social dynamics and dating psychology. Return ONLY valid JSON with keys tone, inferred_meaning, key_phrase. \\nThe inferred_meaning must capture what the sender is REALLY thinking or trying to achieve (the hidden intent behind the words).',
         },
         { role: 'user', content: prompt },
       ],

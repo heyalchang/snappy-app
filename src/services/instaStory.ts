@@ -13,16 +13,19 @@ export async function createInstaStory(
     display_name?: string | null;
     influencer_focus?: string | null;
   },
+  model: string = 'imagen-3.0-generate-002',
+  llmProvider: 'openai' | 'gemini' = 'openai',
 ): Promise<{ url: string; caption: string }> {
   // ---------- Step A: build prompt & caption ----------
   const { data: promptData, error: promptErr } = await supabase.functions.invoke(
-    'generate_story_post',
+    'generate-story-post',
     {
       body: {
         prompt: keyword,
         influencer_focus: ctx.influencer_focus,
         username: ctx.username,
         display_name: ctx.display_name,
+        use_gemini: llmProvider === 'gemini',
       },
     },
   );
@@ -41,9 +44,22 @@ export async function createInstaStory(
   const caption = capMatch ? capMatch[1].trim() : '';
 
   // ---------- Step B: generate image ----------
+  // Build the request for generate_magic_snap so we can log it clearly
+  const imageReqBody = {
+    // Hint the model to produce a vertical 9:16 image
+    prompt: `${formattedText}\n\nVertical portrait 9:16 aspect ratio.`,
+    model,              // forward user-selected model
+    aspect_ratio: '9:16',
+  };
+
+  console.log('[InstaStory] Image generation request →', {
+    model,
+    body: imageReqBody,
+  });
+
   const { data: imgData, error: imgErr } = await supabase.functions.invoke(
     'generate_magic_snap',
-    { body: { prompt: formattedText } },
+    { body: imageReqBody },
   );
 
   if (imgErr || !imgData?.url) {
