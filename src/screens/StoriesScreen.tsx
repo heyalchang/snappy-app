@@ -428,7 +428,6 @@ const runInstaGeneration = async () => {
                       {[
                         { label: 'Default', value: 'imagen-3.0-generate-002' },
                         { label: 'Imagen4', value: 'imagen-4.0-generate-preview-06-06' },
-                        { label: 'Ultra',   value: 'imagen-4.0-ultra-generate-preview-06-06' },
                       ].map((opt) => (
                         <TouchableOpacity
                           key={opt.value}

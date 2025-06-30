@@ -30,7 +30,7 @@
     },
     "plugins": [
       "expo-camera",
-      "expo-video"
+      "expo-av"
     ]
   }
 }

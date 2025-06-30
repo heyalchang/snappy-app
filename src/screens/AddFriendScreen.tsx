@@ -15,6 +15,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MainStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
+import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AddFriend'>;
 
@@ -27,6 +28,7 @@ interface SuggestedFriend {
 
 export default function AddFriendScreen({ navigation }: Props) {
   const { user } = useAuth();
+  const { friendActionsEnabled } = useFeatureFlags();
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestedFriends, setSuggestedFriends] = useState<SuggestedFriend[]>([]);
@@ -188,23 +190,47 @@ const addFriend = async (trimmedUsername: string) => {
     }
 
     /* ------------------------------------------------------------------- */
-    /* 4. Create mutual friendship                                         */
+    /* 4. Create friendship (pending or accepted based on feature flag)     */
     /* ------------------------------------------------------------------- */
-    const { error: friendshipError } = await supabase
-      .from('friendships')
-      .insert([
-        { user_id: user.id, friend_id: friendProfile.id, status: 'accepted' },
-        { user_id: friendProfile.id, friend_id: user.id, status: 'accepted' },
-      ]);
+    if (friendActionsEnabled) {
+      // Use RPC function for friend request
+      const { data, error: rpcError } = await supabase.rpc('request_friend', {
+        requester_id: user.id,
+        recipient_id: friendProfile.id
+      });
 
-    if (friendshipError) throw friendshipError;
+      if (rpcError) throw rpcError;
 
-    console.log('[AddFriend] Friendship created →', {
-      userId: user.id,
-      friendId: friendProfile.id,
-    });
+      console.log('[AddFriend] Friend request result:', data);
 
-    Alert.alert('Success!', `You are now friends with @${friendProfile.username}!`);
+      if (data?.error) {
+        Alert.alert('Info', data.error);
+        return;
+      }
+
+      if (data?.status === 'auto_accepted') {
+        Alert.alert('Success!', `You are now friends with @${friendProfile.username}!`);
+      } else {
+        Alert.alert('Request Sent!', `Friend request sent to @${friendProfile.username}`);
+      }
+    } else {
+      // Original behavior - instant mutual friendship
+      const { error: friendshipError } = await supabase
+        .from('friendships')
+        .insert([
+          { user_id: user.id, friend_id: friendProfile.id, status: 'accepted' },
+          { user_id: friendProfile.id, friend_id: user.id, status: 'accepted' },
+        ]);
+
+      if (friendshipError) throw friendshipError;
+
+      console.log('[AddFriend] Friendship created →', {
+        userId: user.id,
+        friendId: friendProfile.id,
+      });
+
+      Alert.alert('Success!', `You are now friends with @${friendProfile.username}!`);
+    }
   } catch (err) {
     console.error('[AddFriend] Error during addFriend:', err);
     Alert.alert('Error', 'Failed to add friend. Please try again.');

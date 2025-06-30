@@ -22,7 +22,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-import OpenAI from "https://deno.land/x/openai@1.4.0/mod.ts";
+import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
 
 const openai = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY") ?? "",
@@ -99,8 +99,8 @@ serve(async (req) => {
 
     const systemPrompt =
       "You are a creative social-media marketing AI.  " +
-      "Compose an image-generation prompt for an *Instagram story* that promotes the creator’s brand.  " +
-      "It must inspire a visually appealing photo/illustration (no text overlay instructions).  " +
+      "Compose an image-generation prompt for an *Instagram influencer post* that promotes the creator’s brand.  " +
+      "It should heavily inspired by the influencer's focus.  It must inspire a visually appealing photo/illustration (no text overlay instructions).  " +
       "Return EXACTLY the following plain-text format – nothing more:\n\n" +
       "Instagram Influencer Post. Description: <one vivid sentence>\n\n" +
       "Overlaid Caption: <catchy caption ≤ 10 words>";
@@ -109,17 +109,31 @@ serve(async (req) => {
       `Creator name: ${name}\n` +
       `Influencer focus: ${focus}\n` +
       `Keyword / phrase: "${keyword}"\n\n` +
-      `Generate the text in the required format.`;
+      `Generate the text in the required format.  The description must be emotionally resonant and heavily inspired by the influencer's focus.`;
 
     const start = Date.now();
     let rawText = "";
     if (useGemini) {
-      rawText = await callGemini(`${systemPrompt}\n\n${userPrompt}`);
+      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
+      console.log("[generate-story-post] Sending to Gemini:");
+      console.log("=== FULL GEMINI PROMPT START ===");
+      console.log(combinedPrompt);
+      console.log("=== FULL GEMINI PROMPT END ===");
+      
+      rawText = await callGemini(combinedPrompt);
     } else {
+      console.log("[generate-story-post] Sending to OpenAI:");
+      console.log("=== OPENAI SYSTEM PROMPT START ===");
+      console.log(systemPrompt);
+      console.log("=== OPENAI SYSTEM PROMPT END ===");
+      console.log("=== OPENAI USER PROMPT START ===");
+      console.log(userPrompt);
+      console.log("=== OPENAI USER PROMPT END ===");
+      
       const chatRes = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4.1-mini",
         temperature: 0.7,
-        max_tokens: 120,
+        max_tokens: 200,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

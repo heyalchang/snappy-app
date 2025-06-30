@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
-import OpenAI from 'https://deno.land/x/openai@1.4.0/mod.ts';
+import { OpenAI } from 'https://deno.land/x/openai@v4.20.1/mod.ts';
 
 const openai = new OpenAI({
   apiKey: Deno.env.get('OPENAI_API_KEY'),
@@ -32,7 +32,7 @@ serve(async (req) => {
     const prompt = buildPrompt(payload);
 
     const chatRes = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       temperature: 0.7,
       max_tokens: 120,
       messages: [

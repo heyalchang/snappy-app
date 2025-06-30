@@ -66,7 +66,7 @@ serve(async (req) => {
       hasGoals: !!recipientGoals
     })
 
-    // Create prompt for GPT-4-mini
+    // Create prompt for GPT-4.1-mini
     const prompt = `You are ${recipientName}, a ${recipientAge}-year-old with this background: ${recipientPersona}
 
 Your messaging style and goals: ${recipientGoals}
@@ -78,7 +78,7 @@ ${messageHistory}
 
 Respond naturally as ${recipientName} in ONE SHORT SENTENCE (under 15 words). Be authentic to your persona and age. Keep it casual and conversational.`
 
-    console.log('[OPENAI] Sending request to GPT-4o-mini')
+    console.log('[OPENAI] Sending request to GPT-4.1-mini')
     const startTime = Date.now()
     
     // Call OpenAI API
@@ -89,7 +89,7 @@ Respond naturally as ${recipientName} in ONE SHORT SENTENCE (under 15 words). Be
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-mini',
         messages: [
           {
             role: 'system',
