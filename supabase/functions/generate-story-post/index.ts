@@ -43,6 +43,7 @@ interface ReqBody {
   influencer_focus?: string;
   username?: string;
   display_name?: string;
+  kv_content?: string;  // Optional contextual content from KV store
 }
 
 async function callGemini(prompt: string): Promise<string> {
@@ -90,12 +91,20 @@ serve(async (req) => {
     const focus = (body.influencer_focus ?? "lifestyle").trim();
     const name = body.display_name || body.username || "Creator";
 
+    const kvContent = body.kv_content;
+
     console.log("[generate-story-post] Incoming:", {
       prompt: keyword,
       influencer_focus: focus,
       name,
       use_gemini: useGemini,
+      has_kv_content: !!kvContent,
+      kv_content_length: kvContent?.length || 0,
     });
+
+    if (kvContent) {
+      console.log("[generate-story-post] KV Content preview:", kvContent.substring(0, 200) + "...");
+    }
 
     const systemPrompt =
       "You are a creative social-media marketing AI.  " +
@@ -105,11 +114,18 @@ serve(async (req) => {
       "Instagram Influencer Post. Description: <one vivid sentence>\n\n" +
       "Overlaid Caption: <catchy caption ≤ 10 words>";
 
-    const userPrompt =
+    let userPrompt =
       `Creator name: ${name}\n` +
       `Influencer focus: ${focus}\n` +
-      `Keyword / phrase: "${keyword}"\n\n` +
-      `Generate the text in the required format.  The description must be emotionally resonant and heavily inspired by the influencer's focus.`;
+      `Keyword / phrase: "${keyword}"\n`;
+    
+    // Add KV content if provided
+    if (kvContent) {
+      userPrompt += `\nContextual content from blog/article:\n${kvContent}\n`;
+      userPrompt += `\nUse the above contextual content to create a more informed and relevant Instagram post that relates to the keyword while incorporating insights from the content.\n`;
+    }
+    
+    userPrompt += `\nGenerate the text in the required format.  The description must be emotionally resonant and heavily inspired by the influencer's focus.`;
 
     const start = Date.now();
     let rawText = "";

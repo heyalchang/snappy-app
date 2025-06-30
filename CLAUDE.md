@@ -48,6 +48,20 @@ Tech Stack (Minimal)
 * AI Model Notes: gpt-4.1-mini is a valid model
 Critical: expo-camera 16.x uses CameraView API (not legacy Camera)
 
+## Supabase Edge Functions
+
+1. **generate-chat-response** - Generates AI chat responses based on user personas
+2. **generate_magic_snap** - Creates AI-generated images for snaps (uses imagen-proxy-server)
+3. **generate-story-post** - Generates Instagram-style story posts with logging
+4. **generate-reply-options** - Provides smart reply suggestions for dating strategy
+5. **vibe-check** - Analyzes message tone and hidden intent
+6. **fetch-kv-content** - Fetches and processes content from external KV store for enhanced story generation
+
+### Edge Function Environment Variables
+* OPENAI_API_KEY - For GPT models
+* GOOGLE_API_KEY - For Gemini models
+* KV_STORE_API_URL - Base URL for KV store API (fetch-kv-content, defaults to https://imagen-proxy-server-cherryswitch.replit.app)
+
 Core Features (PRD Only)
 Camera capture (photo/video, 10s max)
 1. Auto-deleting snaps

@@ -215,6 +215,24 @@ export default function AuthScreen({ navigation }: Props) {
               <Text style={styles.devButtonText}>Clear Friends</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.devToolRow}>
+            <Text style={styles.devUsername}>jake</Text>
+            <TouchableOpacity 
+              style={styles.devButton}
+              onPress={() => autoLogin('jake')}
+              disabled={isLoading}
+            >
+              <Text style={styles.devButtonText}>Auto Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.devButton}
+              onPress={() => clearFriends('jake')}
+              disabled={isLoading}
+            >
+              <Text style={styles.devButtonText}>Clear Friends</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         )}
       </ScrollView>

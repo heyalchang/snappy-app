@@ -19,6 +19,7 @@ import { RootStackParamList } from '../Navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { createInstaStory } from '../services/instaStory';
+import { fetchKVContent } from '../services/kvContent';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -140,6 +141,7 @@ const runInstaGeneration = async () => {
         username: user.username,
         display_name: user.display_name,
         influencer_focus: (user as any).influencer_focus ?? null,
+        blog_url: (user as any).blog_url ?? null,
       },
       selectedModel,
       llmProvider,     // forward user-selected provider

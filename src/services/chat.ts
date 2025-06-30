@@ -295,7 +295,7 @@ export async function sendTextMessage(
   };
   
   // Send auto-response from the friend
-  sendAutoResponse(roomId, senderId, recipientId, content);
+  // sendAutoResponse(roomId, senderId, recipientId, content); // Disabled auto-response
   
   return messageWithSender;
 }
@@ -337,7 +337,7 @@ export async function sendMediaMessage(
   };
   
   // Send auto-response from the friend
-  sendAutoResponse(roomId, senderId, recipientId, caption || `sent a ${mediaType}`);
+  // sendAutoResponse(roomId, senderId, recipientId, caption || `sent a ${mediaType}`); // Disabled auto-response
   
   return messageWithSender;
 }

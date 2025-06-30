@@ -413,6 +413,7 @@ export default function ChatScreen() {
           result={vibeRes}
           anchorY={overlayY}
           onDismiss={() => setVibeRes(null)}
+          autoHideMs={7000}
         />
       )}
 
